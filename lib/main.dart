@@ -7,6 +7,8 @@ import 'network/electrum_client.dart';
 import 'wallet/address_script.dart';
 import 'wallet/bitcoin_address_deriver.dart';
 import 'wallet/wif_decoder.dart';
+import 'wallet/fee_estimator.dart';
+import 'wallet/send_draft.dart';
 
 void main() {
   runApp(const MobickCoinControlApp());
@@ -441,6 +443,17 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
     final ko = widget.korean;
     final selectedTotal =
         widget.selected.fold<int>(0, (sum, u) => sum + u.valueSats);
+    const feeRate = 1;
+    final inputTypes = List<InputScriptType>.filled(
+      widget.selected.length,
+      InputScriptType.p2pkh,
+    );
+    final feeQuote = FeeEstimator.estimate(
+      inputs: inputTypes,
+      outputCount: 1,
+      satsPerVbyte: feeRate,
+    );
+    final receiveSats = selectedTotal - feeQuote.feeSats;
 
     return Scaffold(
       appBar: AppBar(title: Text(ko ? '전송 초안' : 'Send draft')),
@@ -461,29 +474,41 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          TextFormField(
-            initialValue: (selectedTotal / 100000000).toStringAsFixed(8),
-            readOnly: true,
-            decoration: InputDecoration(
-              labelText: ko ? 'MAX (선택 UTXO 합계)' : 'MAX (selected total)',
-              border: const OutlineInputBorder(),
-              helperText: ko
-                  ? '아직 수수료가 차감되지 않은 금액입니다.'
-                  : 'Fee has not been deducted yet.',
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(ko ? 'MAX 전송 명세' : 'MAX transfer summary',
+                      style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 12),
+                  _AmountRow(
+                    label: ko ? '선택 UTXO 합계' : 'Selected total',
+                    sats: selectedTotal,
+                  ),
+                  _AmountRow(
+                    label: ko ? '예상 네트워크 수수료' : 'Estimated network fee',
+                    sats: feeQuote.feeSats,
+                  ),
+                  _AmountRow(
+                    label: ko ? '수수료 제외 실제 수령액' : 'Recipient receives',
+                    sats: receiveSats,
+                    emphasize: true,
+                  ),
+                  const Divider(),
+                  Text('${feeQuote.vbytes} vB × $feeRate sat/vB'),
+                  const SizedBox(height: 6),
+                  Text(
+                    ko
+                        ? 'MAX에서는 선택한 UTXO 합계에서 네트워크 수수료를 뺀 금액을 수신자가 받습니다. 잔돈(change)은 0입니다.'
+                        : 'With MAX, the recipient receives the selected total minus the network fee. Change is zero.',
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 16),
-          TextFormField(
-            initialValue: '1',
-            readOnly: true,
-            decoration: InputDecoration(
-              labelText: ko ? '수수료율 (sat/vB)' : 'Fee rate (sat/vB)',
-              border: const OutlineInputBorder(),
-              helperText: ko
-                  ? '다음 단계에서 네트워크 권장값과 실제 크기로 계산합니다.'
-                  : 'Network recommendation and exact size come next.',
-            ),
-          ),
           const SizedBox(height: 24),
           Card(
             child: Padding(
@@ -500,6 +525,30 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
             onPressed: null,
             child: Text(ko ? '검토 및 서명 (아직 비활성)' : 'Review & sign (disabled)'),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+
+class _AmountRow extends StatelessWidget {
+  const _AmountRow({required this.label, required this.sats, this.emphasize = false});
+  final String label;
+  final int sats;
+  final bool emphasize;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = emphasize
+        ? Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)
+        : Theme.of(context).textTheme.bodyLarge;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(child: Text(label)),
+          Text('${(sats / 100000000).toStringAsFixed(8)} BMB', style: style),
         ],
       ),
     );
