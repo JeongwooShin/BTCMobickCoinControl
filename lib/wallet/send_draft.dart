@@ -26,6 +26,24 @@ class SendDraftBuilder {
     required String recipient,
     required int satsPerVbyte,
   }) {
+    return amountSpend(
+      selected: selected,
+      inputTypes: inputTypes,
+      recipient: recipient,
+      requestedSendSats: null,
+      satsPerVbyte: satsPerVbyte,
+    );
+  }
+
+  /// Builds either a MAX spend (requestedSendSats == null) or a partial spend.
+  /// Partial spend creates a change output back to the source wallet.
+  static SendDraft amountSpend({
+    required List<Utxo> selected,
+    required List<InputScriptType> inputTypes,
+    required String recipient,
+    required int? requestedSendSats,
+    required int satsPerVbyte,
+  }) {
     if (selected.isEmpty || selected.length != inputTypes.length) {
       throw const FormatException('Selected inputs are invalid.');
     }
@@ -33,19 +51,27 @@ class SendDraftBuilder {
       throw const FormatException('Recipient is empty.');
     }
     final total = selected.fold<int>(0, (sum, u) => sum + u.valueSats);
+    final isMax = requestedSendSats == null;
+    final outputCount = isMax ? 1 : 2;
     final quote = FeeEstimator.estimate(
       inputs: inputTypes,
-      outputCount: 1,
+      outputCount: outputCount,
       satsPerVbyte: satsPerVbyte,
     );
-    final send = total - quote.feeSats;
-    if (send <= 0) throw const FormatException('Selected amount is below fee.');
+    final send = isMax ? total - quote.feeSats : requestedSendSats;
+    if (send == null || send <= 0) {
+      throw const FormatException('Send amount must be positive.');
+    }
+    final change = total - send - quote.feeSats;
+    if (change < 0) {
+      throw const FormatException('Selected amount is insufficient.');
+    }
     return SendDraft(
       selected: List.unmodifiable(selected),
       recipient: recipient.trim(),
       sendSats: send,
       feeSats: quote.feeSats,
-      changeSats: 0,
+      changeSats: change,
       estimatedVbytes: quote.vbytes,
     );
   }
