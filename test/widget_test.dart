@@ -4,19 +4,18 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   testWidgets('Korean wallet import screen is the default',
       (WidgetTester tester) async {
-    await tester.pumpWidget(const MobickCoinControlApp());
+    await tester.pumpWidget(const MobickCoinControlApp(enableSecurity: false));
 
     expect(find.text('BTCMobick Coin Control'), findsOneWidget);
     expect(find.text('지갑 열기'), findsOneWidget);
     expect(find.text('WIF 개인키'), findsOneWidget);
     expect(find.text('계속'), findsOneWidget);
-    expect(find.textContaining('트랜잭션 서명과 브로드캐스트는 비활성화'),
-        findsOneWidget);
+    expect(find.textContaining('개인키는 기본적으로 저장하지 않습니다'), findsOneWidget);
   });
 
   testWidgets('empty WIF is rejected locally in Korean',
       (WidgetTester tester) async {
-    await tester.pumpWidget(const MobickCoinControlApp());
+    await tester.pumpWidget(const MobickCoinControlApp(enableSecurity: false));
 
     await tester.tap(find.text('계속'));
     await tester.pump();
@@ -25,7 +24,7 @@ void main() {
   });
 
   testWidgets('language can switch to English', (WidgetTester tester) async {
-    await tester.pumpWidget(const MobickCoinControlApp());
+    await tester.pumpWidget(const MobickCoinControlApp(enableSecurity: false));
 
     await tester.tap(find.text('한국어').first);
     await tester.pumpAndSettle();
