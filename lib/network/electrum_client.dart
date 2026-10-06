@@ -6,7 +6,7 @@ import '../domain/utxo.dart';
 class ElectrumException implements Exception { const ElectrumException(this.message); final String message; @override String toString()=>message; }
 
 class ElectrumClient {
- ElectrumClient({this.host='wallet.mobick.info',this.port=40009,this.useTls=true,this.timeout=const Duration(seconds:15)});
+ ElectrumClient({this.host='wallet.mobick.info',this.port=40008,this.useTls=false,this.timeout=const Duration(seconds:15)});
  final String host; final int port; final bool useTls; final Duration timeout;
  Socket? _socket; StreamIterator<String>? _lines; int _requestId=0;
 
