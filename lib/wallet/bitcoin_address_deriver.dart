@@ -10,11 +10,13 @@ class DerivedSingleKeyWallet {
     required this.compressedPublicKey,
     required this.p2pkhAddress,
     required this.p2wpkhAddress,
+    required this.publicKeyHash,
   });
 
   final Uint8List compressedPublicKey;
   final String p2pkhAddress;
   final String p2wpkhAddress;
+  final Uint8List publicKeyHash;
 }
 
 class BitcoinAddressDeriver {
@@ -48,6 +50,7 @@ class BitcoinAddressDeriver {
       compressedPublicKey: publicKey,
       p2pkhAddress: _base58Check(Uint8List.fromList([0x00, ...keyHash])),
       p2wpkhAddress: _segwitV0Address('bc', keyHash),
+      publicKeyHash: keyHash,
     );
   }
 
