@@ -8,7 +8,7 @@ class AppLockGate extends StatefulWidget {
     super.key,
     required this.service,
     required this.child,
-    this.relockAfter = const Duration(seconds: 30),
+    this.relockAfter = Duration.zero,
   });
 
   final AppLockService service;
@@ -62,6 +62,9 @@ class _AppLockGateState extends State<AppLockGate>
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.hidden) {
       _backgroundedAt ??= DateTime.now();
+      if (_unlocked && widget.relockAfter == Duration.zero) {
+        _lockAndRefreshBiometrics();
+      }
       return;
     }
 
