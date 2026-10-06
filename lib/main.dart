@@ -315,6 +315,8 @@ class _UtxoScreenState extends State<UtxoScreen> {
         builder: (_) => SendDraftScreen(
           korean: widget.korean,
           selected: _all.where((u) => _selected.contains(_key(u))).toList(),
+          legacyAddress: widget.legacyAddress,
+          segwitAddress: widget.segwitAddress,
         ),
       ),
     );
