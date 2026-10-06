@@ -254,7 +254,7 @@ class _PinSetupScreenState extends State<_PinSetupScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'BTCMobick Coin Control을 열 때 사용할 6자리 PIN을 설정하세요. '
+              'UTXO Control을 열 때 사용할 6자리 PIN을 설정하세요. '
               '이 PIN은 개인키 암호화 키로 직접 사용되지 않습니다.',
               textAlign: TextAlign.center,
             ),
@@ -335,7 +335,7 @@ class _UnlockScreenState extends State<_UnlockScreen> {
             ),
             const SizedBox(height: 20),
             Text(
-              'BTCMobick Coin Control',
+              'UTXO Control',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineSmall,
             ),
