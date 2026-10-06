@@ -41,7 +41,9 @@ class LegacySigner {
 
   static BigInt _bigInt(List<int> bytes) {
     var n = BigInt.zero;
-    for (final b in bytes) n = (n << 8) | BigInt.from(b);
+    for (final b in bytes) {
+      n = (n << 8) | BigInt.from(b);
+    }
     return n;
   }
 
