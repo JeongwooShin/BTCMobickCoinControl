@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'domain/utxo.dart';
 import 'network/electrum_client.dart';
+import 'qr/qr_scan_screen.dart';
 import 'security/app_lock_gate.dart';
 import 'security/app_lock_service.dart';
 import 'settings/security_settings_screen.dart';
@@ -164,6 +165,42 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
     }
   }
 
+  Future<void> _scanWifQr() async {
+    final scanned = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => QrScanScreen(
+          korean: _ko,
+          title: _ko ? 'WIF QR 스캔' : 'Scan WIF QR',
+        ),
+      ),
+    );
+    if (!mounted || scanned == null) return;
+
+    try {
+      WifDecoder().decode(scanned);
+      _wifController.text = scanned;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _ko
+                ? 'WIF 개인키를 QR에서 읽었습니다. 계속을 눌러 UTXO를 조회하세요.'
+                : 'WIF private key scanned. Tap Continue to look up UTXOs.',
+          ),
+        ),
+      );
+    } on WifFormatException {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _ko
+                ? '이 QR은 유효한 WIF 개인키가 아닙니다.'
+                : 'This QR code is not a valid WIF private key.',
+          ),
+        ),
+      );
+    }
+  }
+
   // Private-key persistence is intentionally disabled.
   // TODO(wallet-persistence): if restored, replace the former single-WIF slot
   // with a multi-wallet picker backed by independently encrypted records.
@@ -250,9 +287,9 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
-              onPressed: null,
+              onPressed: _loading ? null : _scanWifQr,
               icon: const Icon(Icons.qr_code_scanner),
-              label: Text(_ko ? 'QR 스캔 (다음 단계)' : 'Scan QR (next milestone)'),
+              label: Text(_ko ? 'WIF QR 스캔' : 'Scan WIF QR'),
             ),
             const SizedBox(height: 16),
             FilledButton(
@@ -537,6 +574,34 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
     return (value * 100000000).round();
   }
 
+  Future<void> _scanRecipientQr() async {
+    final ko = widget.korean;
+    final scanned = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => QrScanScreen(
+          korean: ko,
+          title: ko ? '받는 주소 QR 스캔' : 'Scan recipient QR',
+        ),
+      ),
+    );
+    if (!mounted || scanned == null) return;
+
+    try {
+      final parsed = RecipientAddressParser.parse(scanned);
+      setState(() => _recipient.text = parsed.address);
+    } on FormatException {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ko
+                ? '지원되는 BTCMobick 주소 QR이 아닙니다.'
+                : 'This QR is not a supported BTCMobick address.',
+          ),
+        ),
+      );
+    }
+  }
+
   void _review() {
     final ko = widget.korean;
     RecipientAddress recipient;
@@ -703,7 +768,11 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
             decoration: InputDecoration(
               labelText: ko ? '받는 주소' : 'Recipient address',
               border: const OutlineInputBorder(),
-              suffixIcon: const Icon(Icons.qr_code_scanner),
+              suffixIcon: IconButton(
+                tooltip: ko ? '받는 주소 QR 스캔' : 'Scan recipient QR',
+                onPressed: _scanRecipientQr,
+                icon: const Icon(Icons.qr_code_scanner),
+              ),
             ),
           ),
           SegmentedButton<bool>(
