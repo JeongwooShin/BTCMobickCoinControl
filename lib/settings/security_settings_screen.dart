@@ -44,16 +44,24 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     final controller = TextEditingController();
     final pin = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
         title: const Text('PIN 재확인'),
         content: TextField(
           controller: controller,
+          autofocus: true,
           obscureText: true,
           maxLength: 6,
           keyboardType: TextInputType.number,
+          textInputAction: TextInputAction.done,
           enableSuggestions: false,
           autocorrect: false,
           enableIMEPersonalizedLearning: false,
+          onSubmitted: (value) {
+            if (value.length == 6) {
+              Navigator.of(dialogContext).pop(value);
+            }
+          },
           decoration: const InputDecoration(
             labelText: '6자리 PIN',
             counterText: '',
@@ -61,21 +69,30 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('취소'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text),
+            onPressed: () {
+              final value = controller.text;
+              if (value.length == 6) {
+                Navigator.of(dialogContext).pop(value);
+              }
+            },
             child: const Text('확인'),
           ),
         ],
       ),
     );
-    controller.clear();
-    controller.dispose();
 
-    if (pin == null) return false;
-    return widget.service.verifyPin(pin);
+    final submittedPin = pin;
+    controller.clear();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+    });
+
+    if (submittedPin == null) return false;
+    return widget.service.verifyPin(submittedPin);
   }
 
   Future<void> _setPersistence(bool enabled) async {
