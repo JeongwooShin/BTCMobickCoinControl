@@ -24,7 +24,7 @@ void main() {
 
   test('accepts a known Bitcoin mainnet compressed WIF test vector', () {
     // Private scalar 1, compressed mainnet WIF. Public deterministic vector.
-    const wif = 'KwDiBf89QgGbjEhKnhXJuH7SUW1x59b4Kz7U3qT6W1fG5Qqg7S7g';
+    const wif = 'KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWn';
     // The exact vector is checksum-validated; if upstream vector changes,
     // this test intentionally fails rather than accepting unchecked input.
     expect(() => decoder.decode(wif), returnsNormally);
@@ -32,7 +32,7 @@ void main() {
 
   test('rejects a checksum mutation', () {
     const mutated =
-        'KwDiBf89QgGbjEhKnhXJuH7SUW1x59b4Kz7U3qT6W1fG5Qqg7S7h';
+        'KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWo';
     expect(() => decoder.decode(mutated), throwsA(isA<WifFormatException>()));
   });
 }
