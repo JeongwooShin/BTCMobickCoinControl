@@ -59,7 +59,7 @@ class SendDraftBuilder {
       satsPerVbyte: satsPerVbyte,
     );
     final send = isMax ? total - quote.feeSats : requestedSendSats;
-    if (send == null || send <= 0) {
+    if (send <= 0) {
       throw const FormatException('Send amount must be positive.');
     }
     final change = total - send - quote.feeSats;
