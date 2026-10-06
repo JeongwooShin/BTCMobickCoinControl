@@ -71,7 +71,7 @@ class _AppLockGateState extends State<AppLockGate>
       if (backgroundedAt != null &&
           DateTime.now().difference(backgroundedAt) >= widget.relockAfter &&
           _unlocked) {
-        setState(() => _unlocked = false);
+        _lockAndRefreshBiometrics();
       }
     }
   }
@@ -106,6 +106,17 @@ class _AppLockGateState extends State<AppLockGate>
     if (ok && mounted) {
       setState(() => _unlocked = true);
     }
+  }
+
+  Future<void> _lockAndRefreshBiometrics() async {
+    final available = await widget.service.canUseBiometrics();
+    final enabled = await widget.service.biometricEnabled();
+    if (!mounted) return;
+    setState(() {
+      _biometricsAvailable = available;
+      _biometricsEnabled = enabled;
+      _unlocked = false;
+    });
   }
 
   @override
