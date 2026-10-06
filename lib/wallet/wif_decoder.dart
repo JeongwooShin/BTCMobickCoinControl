@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
+
 class DecodedWif {
   const DecodedWif({
     required this.privateKey,
@@ -24,6 +26,26 @@ class WifDecoder {
   static const _alphabet =
       '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
+  DecodedWif decode(String input) {
+    final wif = input.trim();
+    final decoded = _decodeBase58(wif);
+    if (decoded.length != 37 && decoded.length != 38) {
+      throw const WifFormatException('Unexpected WIF payload length.');
+    }
+
+    final payload = decoded.sublist(0, decoded.length - 4);
+    final checksum = decoded.sublist(decoded.length - 4);
+    final firstHash = sha256.convert(payload).bytes;
+    final expected = sha256.convert(firstHash).bytes.sublist(0, 4);
+    for (var i = 0; i < 4; i++) {
+      if (checksum[i] != expected[i]) {
+        throw const WifFormatException('Invalid WIF checksum.');
+      }
+    }
+
+    return _decodeValidatedBytes(decoded);
+  }
+
   DecodedWif decodeStructure(String input) {
     final wif = input.trim();
     if (wif.isEmpty) {
@@ -35,6 +57,10 @@ class WifDecoder {
       throw const WifFormatException('Unexpected WIF payload length.');
     }
 
+    return _decodeValidatedBytes(decoded);
+  }
+
+  DecodedWif _decodeValidatedBytes(Uint8List decoded) {
     // Bitcoin-compatible mainnet WIF version byte.
     if (decoded[0] != 0x80) {
       throw const WifFormatException('Unsupported WIF network/version.');
