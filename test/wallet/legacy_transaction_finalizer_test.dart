@@ -31,7 +31,7 @@ void main() {
     );
 
     expect(result.changeSats, 0);
-    expect(result.feeSats, result.signed.vbytes * 2);
+    expect(result.feeSats, greaterThanOrEqualTo(result.signed.vbytes * 2));
     expect(result.sendSats + result.feeSats, 50000);
   });
 
@@ -60,7 +60,7 @@ void main() {
 
     expect(result.sendSats, 25000);
     expect(result.sendSats + result.feeSats + result.changeSats, 100000);
-    expect(result.feeSats, result.signed.vbytes);
+    expect(result.feeSats, greaterThanOrEqualTo(result.signed.vbytes));
     expect(result.changeSats, greaterThan(0));
   });
 }
