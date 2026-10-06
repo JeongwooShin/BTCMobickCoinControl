@@ -69,14 +69,14 @@ class LegacyTransactionSigner {
     }
 
     final out = <int>[];
-    _u32(out, 1);
+    _u32(out, 2);
     _varInt(out, inputs.length);
     for (var i = 0; i < inputs.length; i++) {
       out.addAll(_hex(inputs[i].txHash).reversed);
       _u32(out, inputs[i].txPosition);
       _varInt(out, scripts[i].length);
       out.addAll(scripts[i]);
-      _u32(out, 0xffffffff);
+      _u32(out, 0xfffffffd);
     }
 
     _varInt(out, outputs.length);
