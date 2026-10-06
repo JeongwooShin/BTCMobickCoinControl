@@ -15,7 +15,7 @@ class ElectrumClient {
   final Socket s=useTls
     ? await SecureSocket.connect(host,port,timeout:timeout,onBadCertificate:(_)=>false)
     : await Socket.connect(host,port,timeout:timeout);
-  _socket=s; _lines=StreamIterator(s.transform(utf8.decoder).transform(const LineSplitter()));
+  _socket=s; _lines=StreamIterator(s.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()));
   final v=await request('server.version',['btcmobick-coin-control','1.4']);
   if(v==null){await close();throw const ElectrumException('ElectrumX handshake failed.');}
  }
