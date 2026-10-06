@@ -22,8 +22,17 @@ class AppLockService {
   final FlutterSecureStorage _storage;
   final LocalAuthentication _localAuthentication;
 
-  Future<bool> hasPin() async =>
-      (await _storage.read(key: _pinHashKey)) != null;
+  Future<bool> hasPin() async {
+    final salt = await _storage.read(key: _pinSaltKey);
+    final hash = await _storage.read(key: _pinHashKey);
+    if (salt == null || hash == null) return false;
+    try {
+      return base64Decode(salt).length == 16 &&
+          base64Decode(hash).length == 32;
+    } catch (_) {
+      return false;
+    }
+  }
 
   Future<void> setPin(String pin) async {
     _validatePin(pin);
