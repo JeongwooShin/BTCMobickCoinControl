@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="대구 달서구 굿모닝옵티마약국 공식 안내 페이지입니다.">
+  <meta name="theme-color" content="#0f5b94">
+  <title>굿모닝옵티마약국 | 공식 안내</title>
+  <style>
+    :root {
+      --navy: #103f63;
+      --blue: #176ca6;
+      --sky: #eaf6fc;
+      --mint: #cdeedf;
+      --ink: #17212b;
+      --muted: #62707c;
+      --line: #dce5e9;
+      --surface: #ffffff;
+      --shadow: 0 18px 55px rgba(16, 63, 99, .12);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #f6fafc;
+      font-family: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", Arial, sans-serif;
+      line-height: 1.65;
+    }
+    a { color: inherit; text-decoration: none; }
+    .wrap { width: min(1120px, calc(100% - 40px)); margin: 0 auto; }
+    .topbar { background: var(--navy); color: #eaf6ff; font-size: .86rem; }
+    .topbar .wrap { padding: 9px 0; display: flex; justify-content: space-between; gap: 16px; }
+    header { background: rgba(255,255,255,.94); border-bottom: 1px solid rgba(220,229,233,.8); position: sticky; top: 0; z-index: 5; backdrop-filter: blur(12px); }
+    nav { min-height: 75px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 1.17rem; letter-spacing: -.04em; }
+    .brand-mark { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; color: white; background: linear-gradient(135deg, #1a81b9, #0b4d82); font-size: 1.38rem; box-shadow: 0 6px 14px rgba(17,104,160,.24); }
+    .nav-links { display: flex; gap: 24px; color: #4e5b66; font-size: .94rem; font-weight: 650; }
+    .hero { overflow: hidden; background: linear-gradient(119deg, #edf9ff 0%, #f7fcff 53%, #d9f2e8 100%); }
+    .hero .wrap { min-height: 510px; padding: 92px 0 76px; display: grid; grid-template-columns: 1.08fr .92fr; align-items: center; gap: 54px; }
+    .eyebrow { color: #0f6b92; font-weight: 800; font-size: .92rem; letter-spacing: .08em; }
+    h1 { margin: 13px 0 19px; font-size: clamp(2.35rem, 5vw, 4.15rem); line-height: 1.18; letter-spacing: -.07em; }
+    h1 strong { color: var(--blue); }
+    .hero p { max-width: 570px; color: #44525e; font-size: 1.12rem; word-break: keep-all; }
+    .buttons { margin-top: 29px; display: flex; flex-wrap: wrap; gap: 12px; }
+    .button { display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border: 1px solid var(--blue); border-radius: 99px; color: #fff; background: var(--blue); font-weight: 750; font-size: .95rem; }
+    .button.alt { color: #145a83; background: rgba(255,255,255,.85); }
+    .storefront { position: relative; min-height: 350px; border: 12px solid rgba(255,255,255,.72); border-radius: 28px; background: linear-gradient(#bde6f5 0 37%, #fafdfd 37%); box-shadow: var(--shadow); overflow: hidden; }
+    .sun { position: absolute; right: 32px; top: 25px; width: 48px; height: 48px; border-radius: 50%; background: #ffdb78; box-shadow: 0 0 0 12px rgba(255,255,255,.31); }
+    .building { position: absolute; inset: 106px 22px 0; border-radius: 11px 11px 0 0; background: #e9eef0; }
+    .sign { position: absolute; inset: 28px 22px auto; height: 62px; border-radius: 8px; display: flex; align-items: center; gap: 13px; padding: 0 22px; color: white; background: linear-gradient(90deg, #0f5b94, #1982ba); font-size: 1.23rem; font-weight: 850; letter-spacing: -.05em; }
+    .cross { display: grid; place-items: center; width: 29px; height: 29px; border-radius: 9px; color: #14648f; background: #fff; font-size: 1.3rem; }
+    .windows { position: absolute; inset: 114px 27px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+    .window { border: 7px solid #eef5f6; background: repeating-linear-gradient(90deg, #b9d7e3 0 33px, #d9eef4 33px 52px); }
+    .awning { position: absolute; left: 25px; right: 25px; top: 95px; height: 23px; background: repeating-linear-gradient(90deg, #0f5b94 0 34px, #e7f1f5 34px 68px); transform: perspective(60px) rotateX(-17deg); transform-origin: top; }
+    .tag { position: absolute; right: 22px; bottom: 22px; padding: 8px 12px; color: #1d6d54; background: #e7f8ef; border-radius: 99px; font-size: .8rem; font-weight: 800; }
+    main { padding: 84px 0; }
+    .section-heading { max-width: 690px; margin-bottom: 28px; }
+    h2 { margin: 0 0 10px; font-size: clamp(1.65rem, 3vw, 2.35rem); line-height: 1.28; letter-spacing: -.055em; }
+    .section-heading p { margin: 0; color: var(--muted); word-break: keep-all; }
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 17px; }
+    .card { padding: 26px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
+    .icon { display: grid; place-items: center; width: 42px; height: 42px; margin-bottom: 15px; border-radius: 13px; color: #136b99; background: #e8f5fb; font-size: 1.25rem; }
+    h3 { margin: 0 0 7px; font-size: 1.1rem; letter-spacing: -.035em; }
+    .card p { margin: 0; color: var(--muted); font-size: .94rem; word-break: keep-all; }
+    .visit { margin-top: 85px; padding: 37px; display: grid; grid-template-columns: 1fr 1.05fr; gap: 30px; border-radius: 24px; color: #f7fcff; background: var(--navy); box-shadow: var(--shadow); }
+    .visit h2 { color: #fff; }
+    .visit p { margin: 0; color: #cfe7f4; word-break: keep-all; }
+    .details { display: grid; gap: 10px; align-content: center; }
+    .detail { display: grid; grid-template-columns: 86px 1fr; gap: 12px; padding: 13px 0; border-bottom: 1px solid rgba(207,231,244,.23); }
+    .detail:last-child { border-bottom: 0; }
+    .detail b { color: #9fd4ed; font-size: .87rem; }
+    .notice { margin-top: 21px; padding: 14px 17px; border-left: 3px solid #72c4ea; color: #d4eaf5; background: rgba(255,255,255,.07); border-radius: 0 10px 10px 0; font-size: .87rem; }
+    .operator { margin-top: 84px; padding: 28px; border: 1px solid var(--line); border-radius: 18px; background: #fff; }
+    .operator h2 { font-size: 1.4rem; }
+    .operator p { margin: 7px 0 0; color: var(--muted); font-size: .93rem; word-break: keep-all; }
+    footer { padding: 34px 0 43px; border-top: 1px solid var(--line); color: #687581; font-size: .85rem; }
+    footer .wrap { display: flex; justify-content: space-between; gap: 20px; }
+    @media (max-width: 760px) {
+      .topbar .wrap { display: block; text-align: center; }
+      .topbar .wrap span:last-child { display: none; }
+      .nav-links { display: none; }
+      .hero .wrap, .visit { grid-template-columns: 1fr; }
+      .hero .wrap { min-height: auto; padding: 65px 0 60px; gap: 42px; }
+      .storefront { min-height: 300px; }
+      .cards { grid-template-columns: 1fr; }
+      .visit { padding: 29px 24px; }
+      footer .wrap { display: block; }
+      footer .wrap div + div { margin-top: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar"><div class="wrap"><span>굿모닝옵티마약국 공식 안내</span><span>대구 달서구 와룡로 201</span></div></div>
+  <header><nav class="wrap">
+    <a class="brand" href="#top" aria-label="굿모닝옵티마약국 홈"><span class="brand-mark">✚</span><span>굿모닝옵티마약국</span></a>
+    <div class="nav-links"><a href="#about">약국 안내</a><a href="#visit">방문 안내</a><a href="#operator">운영 정보</a></div>
+  </nav></header>
+
+  <section class="hero" id="top"><div class="wrap">
+    <div>
+      <div class="eyebrow">GOOD MORNING PHARMACY</div>
+      <h1>오늘의 건강을 함께하는<br><strong>굿모닝옵티마약국</strong>입니다.</h1>
+      <p>대구 달서구 와룡로 201에서 처방 조제와 건강 상담을 제공하는 지역 약국입니다. 필요한 안내를 쉽고 정확하게 드리겠습니다.</p>
+      <div class="buttons"><a class="button" href="tel:0535250855">전화 문의 053-525-0855</a><a class="button alt" href="#visit">방문 안내 보기</a></div>
+    </div>
+    <div class="storefront" role="img" aria-label="굿모닝옵티마약국 외관을 표현한 일러스트">
+      <div class="sun"></div><div class="building"></div><div class="sign"><span class="cross">✚</span>굿모닝옵티마약국</div><div class="awning"></div><div class="windows"><div class="window"></div><div class="window"></div></div><div class="tag">대구 달서구</div>
+    </div>
+  </div></section>
+
+  <main class="wrap">
+    <section id="about">
+      <div class="section-heading"><h2>일상 가까이에서 드리는 약국 서비스</h2><p>처방전 조제부터 일반의약품과 건강관리 상담까지, 상황을 이해하기 쉬운 말로 안내합니다.</p></div>
+      <div class="cards">
+        <article class="card"><div class="icon">⌁</div><h3>처방 조제</h3><p>처방 내용을 확인하고, 복용 방법과 주의할 점을 안내합니다.</p></article>
+        <article class="card"><div class="icon">✦</div><h3>건강 상담</h3><p>일상 건강관리와 일반의약품 선택에 관한 상담을 제공합니다.</p></article>
+        <article class="card"><div class="icon">◎</div><h3>지역 약국</h3><p>가까운 이웃이 편하게 찾아올 수 있는 신뢰받는 약국을 지향합니다.</p></article>
+      </div>
+    </section>
+
+    <section class="visit" id="visit">
+      <div><h2>방문 안내</h2><p>방문 전 전화로 필요하신 의약품이나 조제 관련 사항을 문의하실 수 있습니다.</p><div class="notice">운영 시간과 재고는 변동될 수 있으므로, 방문 전 전화 확인을 권장합니다.</div></div>
+      <div class="details">
+        <div class="detail"><b>주소</b><span>대구광역시 달서구 와룡로 201</span></div>
+        <div class="detail"><b>전화</b><a href="tel:0535250855">053-525-0855</a></div>
+        <div class="detail"><b>안내</b><span>처방 조제 · 일반의약품 · 건강 상담</span></div>
+      </div>
+    </section>
+
+    <section class="operator" id="operator">
+      <h2>운영 정보</h2>
+      <p>상호명: 굿모닝옵티마약국 · 대표자: 신정우 · 사업자등록번호: 503-22-69776</p>
+      <p>본 웹사이트는 굿모닝옵티마약국의 공식 안내와 온라인 운영 정보를 제공하기 위해 운영됩니다.</p>
+    </section>
+  </main>
+
+  <footer><div class="wrap"><div>© <span id="year"></span> Good Morning Pharmacy. All rights reserved.</div><div>goodmorningpharmacy.runbickers.com</div></div></footer>
+  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
