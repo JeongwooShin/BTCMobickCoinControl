@@ -22,6 +22,7 @@ class AppLockService {
   // per-wallet deletion, and "disable storage" deleting every stored wallet.
   // static const _persistWalletKey = 'security.persist_wallet.v1';
   // static const _savedWifKey = 'wallet.wif.v1';
+  static const _biometricEnabledKey = 'security.biometric_enabled.v1';
   static const _pinIterations = 150000;
 
   final FlutterSecureStorage _storage;
@@ -61,6 +62,15 @@ class AppLockService {
     return _constantTimeEquals(actual, expected);
   }
 
+  Future<bool> biometricEnabled() async =>
+      (await _storage.read(key: _biometricEnabledKey)) == 'true';
+
+  Future<void> setBiometricEnabled(bool enabled) =>
+      _storage.write(
+        key: _biometricEnabledKey,
+        value: enabled ? 'true' : 'false',
+      );
+
   Future<bool> canUseBiometrics() async {
     try {
       return await _localAuthentication.canCheckBiometrics;
@@ -70,6 +80,7 @@ class AppLockService {
   }
 
   Future<bool> authenticateBiometric({required bool korean}) async {
+    if (!await biometricEnabled()) return false;
     try {
       return await _localAuthentication.authenticate(
         localizedReason: korean
