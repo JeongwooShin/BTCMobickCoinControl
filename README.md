@@ -1,4 +1,4 @@
-# BTCMobick Coin Control
+# UTXO Control
 
 A non-custodial Flutter wallet utility for BTCMobick focused on explicit UTXO (coin) control.
 
@@ -50,9 +50,14 @@ See [SECURITY.md](SECURITY.md).
 
 The existing Python sender will be added only after all real private keys and user data have been removed. It is a protocol reference, not production mobile code.
 
-## Website
+## Legal and release documents
 
-Project documentation, privacy policy, terms, FAQ and release information are intended to be published at runbickers.com.
+- [Privacy Policy](docs/PRIVACY_POLICY.md)
+- [Terms of Use](docs/TERMS_OF_USE.md)
+- [Google Play listing draft](docs/PLAY_STORE_LISTING.md)
+- [Android release checklist](docs/RELEASE_CHECKLIST.md)
+
+The public website may mirror these documents at runbickers.com, but the repository is the canonical source for the open-source project.
 
 ## License
 
