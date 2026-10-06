@@ -260,7 +260,7 @@ class _SecurityNotice extends StatelessWidget {
 }
 
 
-class UtxoScreen extends StatelessWidget {
+class UtxoScreen extends StatefulWidget {
   const UtxoScreen({super.key, required this.korean, required this.legacyAddress, required this.segwitAddress, required this.legacy, required this.segwit});
   final bool korean;
   final String legacyAddress;
@@ -269,32 +269,126 @@ class UtxoScreen extends StatelessWidget {
   final List<Utxo> segwit;
 
   @override
+  State<UtxoScreen> createState() => _UtxoScreenState();
+}
+
+class _UtxoScreenState extends State<UtxoScreen> {
+  final Set<String> _selected = <String>{};
+
+  String _key(Utxo u) => '${u.txHash}:${u.txPosition}';
+
+  List<Utxo> get _all => [...widget.legacy, ...widget.segwit];
+
+  int get _total => _all.fold(0, (sum, u) => sum + u.valueSats);
+
+  int get _selectedTotal => _all
+      .where((u) => _selected.contains(_key(u)))
+      .fold(0, (sum, u) => sum + u.valueSats);
+
+  void _toggle(Utxo u, bool? value) {
+    setState(() {
+      if (value == true) {
+        _selected.add(_key(u));
+      } else {
+        _selected.remove(_key(u));
+      }
+    });
+  }
+
+  void _selectAll() => setState(() {
+        _selected
+          ..clear()
+          ..addAll(_all.map(_key));
+      });
+
+  void _clearAll() => setState(_selected.clear);
+
+  void _preview() {
+    if (_selected.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SendDraftScreen(
+          korean: widget.korean,
+          selected: _all.where((u) => _selected.contains(_key(u))).toList(),
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final all = [...legacy, ...segwit];
-    final total = all.fold<int>(0, (sum, u) => sum + u.valueSats);
+    final ko = widget.korean;
     return Scaffold(
-      appBar: AppBar(title: Text(korean ? 'UTXO 조회' : 'UTXO lookup')),
+      appBar: AppBar(title: Text(ko ? 'UTXO 선택' : 'Select UTXOs')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Text(korean ? '총 잔액' : 'Total balance', style: Theme.of(context).textTheme.titleMedium),
-          Text('${(total / 100000000).toStringAsFixed(8)} BMB', style: Theme.of(context).textTheme.headlineMedium),
-          const SizedBox(height: 20),
-          _UtxoGroup(title: 'Native SegWit', address: segwitAddress, items: segwit, korean: korean),
+          Text(ko ? '총 잔액' : 'Total balance',
+              style: Theme.of(context).textTheme.titleMedium),
+          Text('${(_total / 100000000).toStringAsFixed(8)} BMB',
+              style: Theme.of(context).textTheme.headlineMedium),
+          const SizedBox(height: 8),
+          Text(
+            '${ko ? '선택 합계' : 'Selected'}: '
+            '${(_selectedTotal / 100000000).toStringAsFixed(8)} BMB '
+            '(${_selected.length} UTXO)',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 12),
+          Row(children: [
+            TextButton(onPressed: _all.isEmpty ? null : _selectAll, child: Text(ko ? '전체 선택' : 'Select all')),
+            TextButton(onPressed: _selected.isEmpty ? null : _clearAll, child: Text(ko ? '선택 해제' : 'Clear')),
+          ]),
+          const SizedBox(height: 8),
+          _SelectableUtxoGroup(
+            title: 'Native SegWit',
+            address: widget.segwitAddress,
+            items: widget.segwit,
+            korean: ko,
+            selected: _selected,
+            keyFor: _key,
+            onChanged: _toggle,
+          ),
           const SizedBox(height: 16),
-          _UtxoGroup(title: 'Legacy', address: legacyAddress, items: legacy, korean: korean),
+          _SelectableUtxoGroup(
+            title: 'Legacy',
+            address: widget.legacyAddress,
+            items: widget.legacy,
+            korean: ko,
+            selected: _selected,
+            keyFor: _key,
+            onChanged: _toggle,
+          ),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: _selected.isEmpty ? null : _preview,
+            icon: const Icon(Icons.arrow_forward),
+            label: Text(ko ? '전송 초안 만들기' : 'Create send draft'),
+          ),
         ],
       ),
     );
   }
 }
 
-class _UtxoGroup extends StatelessWidget {
-  const _UtxoGroup({required this.title, required this.address, required this.items, required this.korean});
+class _SelectableUtxoGroup extends StatelessWidget {
+  const _SelectableUtxoGroup({
+    required this.title,
+    required this.address,
+    required this.items,
+    required this.korean,
+    required this.selected,
+    required this.keyFor,
+    required this.onChanged,
+  });
+
   final String title;
   final String address;
   final List<Utxo> items;
   final bool korean;
+  final Set<String> selected;
+  final String Function(Utxo) keyFor;
+  final void Function(Utxo, bool?) onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -306,13 +400,107 @@ class _UtxoGroup extends StatelessWidget {
           const SizedBox(height: 4),
           SelectableText(address, style: Theme.of(context).textTheme.bodySmall),
           const Divider(height: 24),
-          if (items.isEmpty) Text(korean ? 'UTXO 없음' : 'No UTXOs')
-          else ...items.map((u) => ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text('${(u.valueSats / 100000000).toStringAsFixed(8)} BMB'),
-            subtitle: Text('${u.txHash.substring(0, 12)}… : ${u.txPosition}'),
-          )),
+          if (items.isEmpty)
+            Text(korean ? 'UTXO 없음' : 'No UTXOs')
+          else
+            ...items.map((u) => CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: selected.contains(keyFor(u)),
+                  onChanged: (value) => onChanged(u, value),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: Text('${(u.valueSats / 100000000).toStringAsFixed(8)} BMB'),
+                  subtitle: Text('${u.txHash.substring(0, 12)}… : ${u.txPosition}'),
+                )),
         ]),
+      ),
+    );
+  }
+}
+
+class SendDraftScreen extends StatefulWidget {
+  const SendDraftScreen({super.key, required this.korean, required this.selected});
+  final bool korean;
+  final List<Utxo> selected;
+
+  @override
+  State<SendDraftScreen> createState() => _SendDraftScreenState();
+}
+
+class _SendDraftScreenState extends State<SendDraftScreen> {
+  final _recipient = TextEditingController();
+
+  @override
+  void dispose() {
+    _recipient.clear();
+    _recipient.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ko = widget.korean;
+    final selectedTotal =
+        widget.selected.fold<int>(0, (sum, u) => sum + u.valueSats);
+
+    return Scaffold(
+      appBar: AppBar(title: Text(ko ? '전송 초안' : 'Send draft')),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Text(ko ? '선택한 UTXO' : 'Selected UTXOs',
+              style: Theme.of(context).textTheme.titleMedium),
+          Text('${widget.selected.length} UTXO · '
+              '${(selectedTotal / 100000000).toStringAsFixed(8)} BMB'),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _recipient,
+            decoration: InputDecoration(
+              labelText: ko ? '받는 주소' : 'Recipient address',
+              border: const OutlineInputBorder(),
+              suffixIcon: const Icon(Icons.qr_code_scanner),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            initialValue: (selectedTotal / 100000000).toStringAsFixed(8),
+            readOnly: true,
+            decoration: InputDecoration(
+              labelText: ko ? 'MAX (선택 UTXO 합계)' : 'MAX (selected total)',
+              border: const OutlineInputBorder(),
+              helperText: ko
+                  ? '아직 수수료가 차감되지 않은 금액입니다.'
+                  : 'Fee has not been deducted yet.',
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            initialValue: '1',
+            readOnly: true,
+            decoration: InputDecoration(
+              labelText: ko ? '수수료율 (sat/vB)' : 'Fee rate (sat/vB)',
+              border: const OutlineInputBorder(),
+              helperText: ko
+                  ? '다음 단계에서 네트워크 권장값과 실제 크기로 계산합니다.'
+                  : 'Network recommendation and exact size come next.',
+            ),
+          ),
+          const SizedBox(height: 24),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                ko
+                    ? '안전 잠금: 현재 단계에서는 트랜잭션 생성, 서명, 브로드캐스트를 하지 않습니다.'
+                    : 'Safety lock: this build does not construct, sign, or broadcast a transaction yet.',
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: null,
+            child: Text(ko ? '검토 및 서명 (아직 비활성)' : 'Review & sign (disabled)'),
+          ),
+        ],
       ),
     );
   }
