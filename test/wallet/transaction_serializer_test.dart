@@ -14,4 +14,11 @@ void main(){
   expect(tx.hex.contains(List.filled(64,'1').join()),isTrue);
   expect(tx.hex.endsWith('00000000'),isTrue);
  });
+ test('partial spend serializes recipient and change outputs',(){
+  final input=[Utxo(txHash:List.filled(64,'2').join(),txPosition:0,valueSats:50000,height:1)];
+  final tx=TransactionSerializer.legacyUnsigned(inputs:input,outputValueSats:20000,outputScript:Uint8List.fromList([0x51]),changeValueSats:29774,changeScript:Uint8List.fromList([0x52]));
+  expect(tx.hex.startsWith('0100000001'),isTrue);
+  expect(tx.hex.contains('0251'),isTrue);
+  expect(tx.hex.contains('0152'),isTrue);
+ });
 }
