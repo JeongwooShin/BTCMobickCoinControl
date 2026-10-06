@@ -36,6 +36,19 @@ class ElectrumClient {
   final satsPerVbyte=(r * 100000000 / 1000).ceil();
   return satsPerVbyte < 1 ? 1 : satsPerVbyte;
  }
+ Future<String> broadcastTransaction(String rawTxHex) async {
+  if (rawTxHex.isEmpty || rawTxHex.length.isOdd) {
+    throw const ElectrumException('Invalid raw transaction hex.');
+  }
+  final result = await request(
+    'blockchain.transaction.broadcast',
+    [rawTxHex],
+  );
+  if (result is! String || result.length != 64) {
+    throw const ElectrumException('Malformed broadcast response.');
+  }
+  return result;
+ }
  Future<List<Utxo>> listUnspent(String sh) async {
   final r=await request('blockchain.scripthash.listunspent',[sh]); if(r is! List)throw const ElectrumException('Malformed listunspent response.');
   return r.map((x){if(x is! Map)throw const FormatException('Malformed UTXO item.');return Utxo.fromElectrumJson(Map<String,dynamic>.from(x));}).toList(growable:false);
