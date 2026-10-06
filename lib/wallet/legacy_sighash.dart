@@ -13,13 +13,13 @@ class LegacySighash {
       throw RangeError('Invalid signing input index.');
     }
     final out=<int>[];
-    _u32(out,1); _varInt(out,inputs.length);
+    _u32(out,2); _varInt(out,inputs.length);
     for(var i=0;i<inputs.length;i++){
       out.addAll(_hex(inputs[i].txHash).reversed);
       _u32(out,inputs[i].txPosition);
       final script=i==signingIndex ? sourceScriptPubKey : Uint8List(0);
       _varInt(out,script.length); out.addAll(script);
-      _u32(out,0xffffffff);
+      _u32(out,0xfffffffd);
     }
     _varInt(out,outputs.length);
     for(final output in outputs){
