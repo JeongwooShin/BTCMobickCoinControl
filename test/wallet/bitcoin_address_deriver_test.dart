@@ -15,6 +15,6 @@ void main() {
       '0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798',
     );
     expect(wallet.p2pkhAddress, '1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH');
-    expect(wallet.p2wpkhAddress, 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kygt080');
+    expect(wallet.p2wpkhAddress, 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4');
   });
 }
