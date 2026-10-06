@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'network/electrum_client.dart';
 import 'wallet/address_script.dart';
 import 'wallet/bitcoin_address_deriver.dart';
+import 'wallet/wif_decoder.dart';
 
 void main() {
   runApp(const MobickCoinControlApp());
@@ -58,6 +59,7 @@ class WalletImportScreen extends StatefulWidget {
 class _WalletImportScreenState extends State<WalletImportScreen> {
   final _wifController = TextEditingController();
   bool _obscureWif = true;
+  bool _loading = false;
 
   bool get _ko => widget.language == AppLanguage.korean;
 
@@ -69,6 +71,7 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
   }
 
   Future<void> _continue() async {
+    if (_loading) return;
     final value = _wifController.text.trim();
     if (value.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -77,6 +80,7 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
       return;
     }
 
+    setState(() => _loading = true);
     try {
       final wallet = BitcoinAddressDeriver().deriveFromWif(value);
       final client = ElectrumClient();
@@ -105,11 +109,26 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
       } finally {
         await client.close();
       }
-    } catch (_) {
+    } on WifFormatException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_ko ? '개인키 또는 네트워크를 확인하세요.' : 'Check the private key or network connection.')),
+        SnackBar(content: Text(_ko ? '개인키 형식 오류: ${error.message}' : 'Private key error: ${error.message}')),
       );
+    } on ElectrumException catch (error) {
+      if (!mounted) return;
+      debugPrint('ElectrumX failure: ${error.message}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_ko ? 'BTCMobick 네트워크 연결 실패: ${error.message}' : 'BTCMobick network error: ${error.message}')),
+      );
+    } catch (error, stack) {
+      if (!mounted) return;
+      debugPrint('Wallet lookup failure (no secrets logged): ${error.runtimeType}');
+      debugPrintStack(stackTrace: stack);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_ko ? 'UTXO 조회 중 오류가 발생했습니다.' : 'An error occurred while looking up UTXOs.')),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -186,8 +205,10 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
             ),
             const SizedBox(height: 16),
             FilledButton(
-              onPressed: _continue,
-              child: Text(_ko ? '계속' : 'Continue'),
+              onPressed: _loading ? null : _continue,
+              child: _loading
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                  : Text(_ko ? '계속' : 'Continue'),
             ),
             const SizedBox(height: 24),
             _SecurityNotice(korean: _ko),
