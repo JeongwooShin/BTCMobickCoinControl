@@ -10,6 +10,7 @@ import 'wallet/wif_decoder.dart';
 import 'wallet/fee_estimator.dart';
 import 'wallet/fee_rate_options.dart';
 import 'wallet/recipient_address.dart';
+import 'wallet/send_draft.dart';
 import 'wallet/transaction_serializer.dart';
 
 void main() {
@@ -435,6 +436,8 @@ class SendDraftScreen extends StatefulWidget {
 class _SendDraftScreenState extends State<SendDraftScreen> {
   final _recipient = TextEditingController();
   final _customFee = TextEditingController(text: '1');
+  final _amount = TextEditingController();
+  bool _maxSpend = true;
   _FeeChoice _choice = _FeeChoice.normal;
   FeeRateOptions _rates = FeeRateOptions.fromNetworkMinimum(1);
   bool _loadingRates = true;
@@ -459,6 +462,14 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
     }
   }
 
+  int? _requestedSats() {
+    if (_maxSpend) return null;
+    final text = _amount.text.trim().replaceAll(',', '');
+    final value = double.tryParse(text);
+    if (value == null || value <= 0) return -1;
+    return (value * 100000000).round();
+  }
+
   void _review() {
     final ko = widget.korean;
     RecipientAddress recipient;
@@ -474,11 +485,13 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
       return;
     }
     final types=List<InputScriptType>.filled(widget.selected.length,InputScriptType.p2pkh);
-    final quote=FeeEstimator.estimate(inputs:types,outputCount:1,satsPerVbyte:feeRate);
-    final total=widget.selected.fold<int>(0,(s,u)=>s+u.valueSats);
-    final receive=total-quote.feeSats;
-    if(receive<=0){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ko?'수수료를 제외한 전송액이 부족합니다.':'Amount after fee is too small.')));return;}
-    final tx=TransactionSerializer.legacyUnsigned(inputs:widget.selected,outputValueSats:receive,outputScript:recipient.scriptPubKey);
+    final requested=_requestedSats();
+    if(requested == -1){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(ko?'전송 금액을 확인하세요.':'Check the send amount.')));return;}
+    final draft=SendDraftBuilder.amountSpend(selected:widget.selected,inputTypes:types,recipient:recipient.address,requestedSendSats:requested,satsPerVbyte:feeRate);
+    if(draft.changeSats != 0){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(ko?'부분 전송 raw TX는 다음 단계에서 change output과 함께 활성화됩니다.':'Partial-spend raw TX will be enabled with the change output in the next step.')));return;}
+    final tx=TransactionSerializer.legacyUnsigned(inputs:widget.selected,outputValueSats:draft.sendSats,outputScript:recipient.scriptPubKey);
+    final receive=draft.sendSats;
+    final quote=FeeQuote(vbytes:draft.estimatedVbytes,feeSats:draft.feeSats);
     Navigator.of(context).push(MaterialPageRoute(builder:(_)=>TransactionReviewScreen(korean:ko,selected:widget.selected,recipient:recipient.address,feeRate:feeRate,feeSats:quote.feeSats,receiveSats:receive,unsignedHex:tx.hex)));
   }
 
@@ -495,8 +508,10 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
   void dispose() {
     _recipient.clear();
     _customFee.clear();
+    _amount.clear();
     _recipient.dispose();
     _customFee.dispose();
+    _amount.dispose();
     super.dispose();
   }
 
@@ -512,7 +527,24 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
       outputCount: 1,
       satsPerVbyte: validFee ? feeRate : _rates.minimum,
     );
-    final receiveSats = selectedTotal - feeQuote.feeSats;
+    final requestedSats = _requestedSats();
+    final sendDraft = requestedSats == -1
+        ? null
+        : (() {
+            try {
+              return SendDraftBuilder.amountSpend(
+                selected: widget.selected,
+                inputTypes: inputTypes,
+                recipient: 'preview',
+                requestedSendSats: requestedSats,
+                satsPerVbyte: validFee ? feeRate : _rates.minimum,
+              );
+            } on FormatException {
+              return null;
+            }
+          })();
+    final receiveSats = sendDraft?.sendSats ?? 0;
+    final changeSats = sendDraft?.changeSats ?? 0;
 
     return Scaffold(
       appBar: AppBar(title: Text(ko ? '전송 초안' : 'Send draft')),
@@ -530,6 +562,26 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
               suffixIcon: const Icon(Icons.qr_code_scanner),
             ),
           ),
+          SegmentedButton<bool>(
+            segments: [
+              ButtonSegment(value: true, label: Text(ko ? 'MAX' : 'MAX')),
+              ButtonSegment(value: false, label: Text(ko ? '직접 입력' : 'Custom amount')),
+            ],
+            selected: {_maxSpend},
+            onSelectionChanged: (s) => setState(() => _maxSpend = s.first),
+          ),
+          if (!_maxSpend) ...[
+            const SizedBox(height: 12),
+            TextField(
+              controller: _amount,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: ko ? '전송할 BMB' : 'BMB to send',
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
           Text(ko ? '전송 속도' : 'Transfer speed', style: Theme.of(context).textTheme.titleMedium),
           if (_loadingRates) const LinearProgressIndicator(),
@@ -562,8 +614,9 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
                 Text(ko ? 'MAX 전송 명세' : 'MAX transfer summary', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 12),
                 _AmountRow(label: ko ? '선택 UTXO 합계' : 'Selected total', sats: selectedTotal),
-                _AmountRow(label: ko ? '예상 네트워크 수수료' : 'Estimated network fee', sats: feeQuote.feeSats),
-                _AmountRow(label: ko ? '수수료 제외 실제 수령액' : 'Recipient receives', sats: receiveSats, emphasize: true),
+                _AmountRow(label: ko ? '실제 전송액' : 'Recipient receives', sats: receiveSats, emphasize: true),
+                _AmountRow(label: ko ? '예상 네트워크 수수료' : 'Estimated network fee', sats: sendDraft?.feeSats ?? feeQuote.feeSats),
+                _AmountRow(label: ko ? '내게 돌아오는 잔돈 (change)' : 'Change back to wallet', sats: changeSats),
                 const Divider(),
                 Text('${feeQuote.vbytes} vB × ${validFee ? feeRate : _rates.minimum} sat/vB'),
                 Text(ko
@@ -585,7 +638,7 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
           )),
           const SizedBox(height: 16),
           FilledButton(
-            onPressed: validFee && receiveSats > 0 ? _review : null,
+            onPressed: validFee && sendDraft != null && receiveSats > 0 ? _review : null,
             child: Text(ko ? '검토' : 'Review'),
           ),
         ],
