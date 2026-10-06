@@ -7,6 +7,12 @@ class FeeQuote {
 }
 
 class FeeEstimator {
+  static const int bickPerBmb = 100000000;
+
+  static double satsToBmb(int bick) => bick / bickPerBmb;
+
+  static String formatBick(int bick) => '$bick bick';
+
   /// Conservative pre-sign estimate for simple P2PKH/P2WPKH spends.
   /// Exact fee is recalculated from the signed transaction before broadcast.
   static FeeQuote estimate({
