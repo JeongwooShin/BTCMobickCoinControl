@@ -8,6 +8,7 @@ import 'wallet/address_script.dart';
 import 'wallet/bitcoin_address_deriver.dart';
 import 'wallet/wif_decoder.dart';
 import 'wallet/fee_estimator.dart';
+import 'wallet/fee_rate_options.dart';
 
 void main() {
   runApp(const MobickCoinControlApp());
@@ -418,6 +419,8 @@ class _SelectableUtxoGroup extends StatelessWidget {
   }
 }
 
+enum _FeeChoice { economy, normal, fast, custom }
+
 class SendDraftScreen extends StatefulWidget {
   const SendDraftScreen({super.key, required this.korean, required this.selected});
   final bool korean;
@@ -429,28 +432,60 @@ class SendDraftScreen extends StatefulWidget {
 
 class _SendDraftScreenState extends State<SendDraftScreen> {
   final _recipient = TextEditingController();
+  final _customFee = TextEditingController(text: '1');
+  _FeeChoice _choice = _FeeChoice.normal;
+  FeeRateOptions _rates = FeeRateOptions.fromNetworkMinimum(1);
+  bool _loadingRates = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRates();
+  }
+
+  Future<void> _loadRates() async {
+    final client = ElectrumClient();
+    try {
+      await client.connect();
+      final minimum = await client.estimateFeeSatsPerVbyte(targetBlocks: 2);
+      if (mounted) setState(() => _rates = FeeRateOptions.fromNetworkMinimum(minimum));
+    } catch (_) {
+      // Safe fallback remains 1 bick/vB; no wallet secret is involved.
+    } finally {
+      await client.close();
+      if (mounted) setState(() => _loadingRates = false);
+    }
+  }
+
+  int get _feeRate {
+    return switch (_choice) {
+      _FeeChoice.economy => _rates.economy,
+      _FeeChoice.normal => _rates.normal,
+      _FeeChoice.fast => _rates.fast,
+      _FeeChoice.custom => int.tryParse(_customFee.text) ?? 0,
+    };
+  }
 
   @override
   void dispose() {
     _recipient.clear();
+    _customFee.clear();
     _recipient.dispose();
+    _customFee.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final ko = widget.korean;
-    final selectedTotal =
-        widget.selected.fold<int>(0, (sum, u) => sum + u.valueSats);
-    const feeRate = 1;
-    final inputTypes = List<InputScriptType>.filled(
-      widget.selected.length,
-      InputScriptType.p2pkh,
-    );
+    final selectedTotal = widget.selected.fold<int>(0, (sum, u) => sum + u.valueSats);
+    final feeRate = _feeRate;
+    final validFee = feeRate >= _rates.minimum;
+    final inputTypes = List<InputScriptType>.filled(widget.selected.length, InputScriptType.p2pkh);
     final feeQuote = FeeEstimator.estimate(
       inputs: inputTypes,
       outputCount: 1,
-      satsPerVbyte: feeRate,
+      satsPerVbyte: validFee ? feeRate : _rates.minimum,
     );
     final receiveSats = selectedTotal - feeQuote.feeSats;
 
@@ -459,10 +494,8 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Text(ko ? '선택한 UTXO' : 'Selected UTXOs',
-              style: Theme.of(context).textTheme.titleMedium),
-          Text('${widget.selected.length} UTXO · '
-              '${(selectedTotal / 100000000).toStringAsFixed(8)} BMB'),
+          Text(ko ? '선택한 UTXO' : 'Selected UTXOs', style: Theme.of(context).textTheme.titleMedium),
+          Text('${widget.selected.length} UTXO · ${(selectedTotal / 100000000).toStringAsFixed(8)} BMB'),
           const SizedBox(height: 20),
           TextField(
             controller: _recipient,
@@ -472,58 +505,59 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
               suffixIcon: const Icon(Icons.qr_code_scanner),
             ),
           ),
+          const SizedBox(height: 20),
+          Text(ko ? '전송 속도' : 'Transfer speed', style: Theme.of(context).textTheme.titleMedium),
+          if (_loadingRates) const LinearProgressIndicator(),
+          RadioGroup<_FeeChoice>(
+            groupValue: _choice,
+            onChanged: (v) => setState(() => _choice = v ?? _choice),
+            child: Column(children: [
+              RadioListTile(value: _FeeChoice.economy, title: Text(ko ? '절약' : 'Economy'), subtitle: Text('${_rates.economy} sat/vB')),
+              RadioListTile(value: _FeeChoice.normal, title: Text(ko ? '일반 (권장)' : 'Normal (recommended)'), subtitle: Text('${_rates.normal} sat/vB')),
+              RadioListTile(value: _FeeChoice.fast, title: Text(ko ? '빠름' : 'Fast'), subtitle: Text('${_rates.fast} sat/vB')),
+              RadioListTile(value: _FeeChoice.custom, title: Text(ko ? '직접 설정' : 'Custom'), subtitle: Text(ko ? '최소 권장: ${_rates.minimum} sat/vB' : 'Recommended minimum: ${_rates.minimum} sat/vB')),
+            ]),
+          ),
+          if (_choice == _FeeChoice.custom)
+            TextField(
+              controller: _customFee,
+              keyboardType: TextInputType.number,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: 'sat/vB',
+                border: const OutlineInputBorder(),
+                errorText: validFee ? null : (ko ? '최소 ${_rates.minimum} sat/vB 이상 입력하세요.' : 'Enter at least ${_rates.minimum} sat/vB.'),
+              ),
+            ),
           const SizedBox(height: 16),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(ko ? 'MAX 전송 명세' : 'MAX transfer summary',
-                      style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 12),
-                  _AmountRow(
-                    label: ko ? '선택 UTXO 합계' : 'Selected total',
-                    sats: selectedTotal,
-                  ),
-                  _AmountRow(
-                    label: ko ? '예상 네트워크 수수료' : 'Estimated network fee',
-                    sats: feeQuote.feeSats,
-                  ),
-                  _AmountRow(
-                    label: ko ? '수수료 제외 실제 수령액' : 'Recipient receives',
-                    sats: receiveSats,
-                    emphasize: true,
-                  ),
-                  const Divider(),
-                  Text('${feeQuote.vbytes} vB × $feeRate sat/vB'),
-                  Text(
-                    ko
-                        ? '예상 수수료: ${feeQuote.feeSats} bick (≈ ${(feeQuote.feeSats / 100000000).toStringAsFixed(8)} BMB)'
-                        : 'Estimated fee: ${feeQuote.feeSats} bick (≈ ${(feeQuote.feeSats / 100000000).toStringAsFixed(8)} BMB)',
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    ko
-                        ? 'MAX에서는 선택한 UTXO 합계에서 네트워크 수수료를 뺀 금액을 수신자가 받습니다. 잔돈(change)은 0입니다.'
-                        : 'With MAX, the recipient receives the selected total minus the network fee. Change is zero.',
-                  ),
-                ],
-              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(ko ? 'MAX 전송 명세' : 'MAX transfer summary', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 12),
+                _AmountRow(label: ko ? '선택 UTXO 합계' : 'Selected total', sats: selectedTotal),
+                _AmountRow(label: ko ? '예상 네트워크 수수료' : 'Estimated network fee', sats: feeQuote.feeSats),
+                _AmountRow(label: ko ? '수수료 제외 실제 수령액' : 'Recipient receives', sats: receiveSats, emphasize: true),
+                const Divider(),
+                Text('${feeQuote.vbytes} vB × ${validFee ? feeRate : _rates.minimum} sat/vB'),
+                Text(ko
+                    ? '예상 수수료: ${feeQuote.feeSats} bick (≈ ${(feeQuote.feeSats / 100000000).toStringAsFixed(8)} BMB)'
+                    : 'Estimated fee: ${feeQuote.feeSats} bick (≈ ${(feeQuote.feeSats / 100000000).toStringAsFixed(8)} BMB)'),
+                const SizedBox(height: 6),
+                Text(ko
+                    ? 'MAX에서는 선택한 UTXO 합계에서 네트워크 수수료를 뺀 금액을 수신자가 받습니다. 잔돈(change)은 0입니다.'
+                    : 'With MAX, the recipient receives the selected total minus the network fee. Change is zero.'),
+              ]),
             ),
           ),
-          const SizedBox(height: 16),
           const SizedBox(height: 24),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                ko
-                    ? '안전 잠금: 현재 단계에서는 트랜잭션 생성, 서명, 브로드캐스트를 하지 않습니다.'
-                    : 'Safety lock: this build does not construct, sign, or broadcast a transaction yet.',
-              ),
-            ),
-          ),
+          Card(child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(ko
+                ? '안전 잠금: 현재 단계에서는 트랜잭션 생성, 서명, 브로드캐스트를 하지 않습니다.'
+                : 'Safety lock: this build does not construct, sign, or broadcast a transaction yet.'),
+          )),
           const SizedBox(height: 16),
           FilledButton(
             onPressed: null,
