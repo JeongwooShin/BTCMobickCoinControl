@@ -12,6 +12,8 @@ class TransactionSerializer {
     required List<Utxo> inputs,
     required int outputValueSats,
     required Uint8List outputScript,
+    int changeValueSats = 0,
+    Uint8List? changeScript,
   }) {
     if (inputs.isEmpty || outputValueSats <= 0) throw const FormatException('Invalid transaction values.');
     final out=<int>[];
@@ -24,10 +26,19 @@ class TransactionSerializer {
       out.add(0); // empty scriptSig before signing
       _u32(out,0xffffffff);
     }
-    out.add(1); // one MAX recipient output, no change
+    final hasChange = changeValueSats > 0;
+    if (hasChange && changeScript == null) {
+      throw const FormatException('Change script is required.');
+    }
+    out.add(hasChange ? 2 : 1);
     _u64(out,outputValueSats);
     _varInt(out,outputScript.length);
     out.addAll(outputScript);
+    if (hasChange) {
+      _u64(out,changeValueSats);
+      _varInt(out,changeScript!.length);
+      out.addAll(changeScript);
+    }
     _u32(out,0); // locktime
     final bytes=Uint8List.fromList(out);
     return UnsignedTransaction(bytes:bytes,hex:bytes.map((b)=>b.toRadixString(16).padLeft(2,'0')).join());
