@@ -1,5 +1,6 @@
 import 'package:btcmobick_coin_control/domain/utxo.dart';
 import 'package:btcmobick_coin_control/main.dart';
+import 'package:btcmobick_coin_control/security/app_lock_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -29,6 +30,7 @@ void main() {
           legacy: utxos,
           segwit: const [],
           sessionWif: 'test-only-wif',
+          securityService: AppLockService(),
         ),
       ),
     );
