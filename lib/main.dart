@@ -17,7 +17,7 @@ void main() {
   runApp(const MobickCoinControlApp());
 }
 
-enum AppLanguage { widget.korean, english }
+enum AppLanguage { korean, english }
 
 class MobickCoinControlApp extends StatefulWidget {
   const MobickCoinControlApp({super.key});
@@ -27,81 +27,10 @@ class MobickCoinControlApp extends StatefulWidget {
 }
 
 class _MobickCoinControlAppState extends State<MobickCoinControlApp> {
-  AppLanguage _language = AppLanguage.widget.korean;
+  AppLanguage _language = AppLanguage.korean;
 
   void _setLanguage(AppLanguage language) {
     setState(() => _language = language);
-  }
-
-  @override
-  State<TransactionReviewScreen> createState() => _TransactionReviewScreenState();
-}
-
-class _TransactionReviewScreenState extends State<TransactionReviewScreen> {
-  bool _broadcasting = false;
-  String? _broadcastResult;
-
-  Future<void> _broadcast() async {
-    final ko = widget.korean;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(ko ? '실제 네트워크로 전송할까요?' : 'Broadcast to the live network?'),
-        content: Text(
-          ko
-              ? '이 작업은 실제 BTCMobick 트랜잭션을 전송합니다. 받는 주소, 금액, 수수료, change를 다시 확인하세요.'
-              : 'This sends a real BTCMobick transaction. Re-check the widget.recipient, amount, fee, and change.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(ko ? '취소' : 'Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(ko ? '실제 전송' : 'Broadcast'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || _broadcasting) return;
-
-    setState(() => _broadcasting = true);
-    final client = ElectrumClient();
-    try {
-      await client.connect();
-      final serverTxid = await client.broadcastTransaction(widget.signedHex);
-      if (!mounted) return;
-      if (serverTxid != widget.txid) {
-        setState(() => _broadcastResult = 'mismatch:$serverTxid');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              ko
-                  ? '경고: 서버 TXID가 로컬 TXID와 다릅니다. 추가 전송을 중단하세요.'
-                  : 'Warning: server TXID differs from the local TXID. Stop further sends.',
-            ),
-          ),
-        );
-        return;
-      }
-      setState(() => _broadcastResult = serverTxid);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(ko ? '브로드캐스트 성공' : 'Broadcast successful')),
-      );
-    } on ElectrumException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            ko ? '브로드캐스트 실패: ${e.message}' : 'Broadcast failed: ${e.message}',
-          ),
-        ),
-      );
-    } finally {
-      await client.close();
-      if (mounted) setState(() => _broadcasting = false);
-    }
   }
 
   @override
@@ -140,7 +69,7 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
   bool _obscureWif = true;
   bool _loading = false;
 
-  bool get _ko => widget.language == AppLanguage.widget.korean;
+  bool get _ko => widget.language == AppLanguage.korean;
 
   @override
   void dispose() {
@@ -177,7 +106,7 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => UtxoScreen(
-              widget.korean: _ko,
+              korean: _ko,
               legacyAddress: wallet.p2pkhAddress,
               segwitAddress: wallet.p2wpkhAddress,
               legacy: legacy,
@@ -231,7 +160,7 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
             onSelected: widget.onLanguageChanged,
             itemBuilder: (context) => const [
               PopupMenuItem(
-                value: AppLanguage.widget.korean,
+                value: AppLanguage.korean,
                 child: Text('한국어'),
               ),
               PopupMenuItem(
@@ -298,7 +227,7 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
                   : Text(_ko ? '계속' : 'Continue'),
             ),
             const SizedBox(height: 24),
-            _SecurityNotice(widget.korean: _ko),
+            _SecurityNotice(korean: _ko),
           ],
         ),
       ),
@@ -323,7 +252,7 @@ class _SecurityNotice extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                widget.korean
+                korean
                     ? '개발 버전: 결정론적 테스트가 준비될 때까지 트랜잭션 서명과 브로드캐스트는 비활성화되어 있습니다.'
                     : 'Development build: transaction signing and broadcasting are '
                         'disabled until deterministic tests are in place.',
@@ -408,8 +337,8 @@ class _UtxoScreenState extends State<UtxoScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => SendDraftScreen(
-          widget.korean: widget.korean,
-          widget.selected: selectedLegacy,
+          korean: widget.korean,
+          selected: selectedLegacy,
           legacyAddress: widget.legacyAddress,
           segwitAddress: widget.segwitAddress,
           sessionWif: widget.sessionWif,
@@ -447,8 +376,8 @@ class _UtxoScreenState extends State<UtxoScreen> {
             title: 'Native SegWit',
             address: widget.segwitAddress,
             items: widget.segwit,
-            widget.korean: ko,
-            widget.selected: _selected,
+            korean: ko,
+            selected: _selected,
             keyFor: _key,
             onChanged: _toggle,
           ),
@@ -457,8 +386,8 @@ class _UtxoScreenState extends State<UtxoScreen> {
             title: 'Legacy',
             address: widget.legacyAddress,
             items: widget.legacy,
-            widget.korean: ko,
-            widget.selected: _selected,
+            korean: ko,
+            selected: _selected,
             keyFor: _key,
             onChanged: _toggle,
           ),
@@ -489,7 +418,7 @@ class _SelectableUtxoGroup extends StatelessWidget {
   final String address;
   final List<Utxo> items;
   final bool korean;
-  final Set<String> widget.selected;
+  final Set<String> selected;
   final String Function(Utxo) keyFor;
   final void Function(Utxo, bool?) onChanged;
 
@@ -504,11 +433,11 @@ class _SelectableUtxoGroup extends StatelessWidget {
           SelectableText(address, style: Theme.of(context).textTheme.bodySmall),
           const Divider(height: 24),
           if (items.isEmpty)
-            Text(widget.korean ? 'UTXO 없음' : 'No UTXOs')
+            Text(korean ? 'UTXO 없음' : 'No UTXOs')
           else
             ...items.map((u) => CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
-                  value: widget.selected.contains(keyFor(u)),
+                  value: selected.contains(keyFor(u)),
                   onChanged: (value) => onChanged(u, value),
                   controlAffinity: ListTileControlAffinity.leading,
                   title: Text('${(u.valueSats / 100000000).toStringAsFixed(8)} BMB'),
@@ -573,9 +502,9 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
 
   void _review() {
     final ko = widget.korean;
-    RecipientAddress widget.recipient;
+    RecipientAddress recipient;
     try {
-      widget.recipient = RecipientAddressParser.parse(_recipient.text);
+      recipient = RecipientAddressParser.parse(_recipient.text);
     } on FormatException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -589,8 +518,8 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
       return;
     }
 
-    final widget.feeRate = _feeRate;
-    if (widget.feeRate < _rates.minimum) {
+    final feeRate = _feeRate;
+    if (feeRate < _rates.minimum) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -624,28 +553,28 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
         wif: widget.sessionWif,
         inputs: widget.selected,
         sourceScriptPubKey: sourceScript,
-        recipientScriptPubKey: widget.recipient.scriptPubKey,
+        recipientScriptPubKey: recipient.scriptPubKey,
         requestedSendSats: requested,
         changeScriptPubKey: changeRecipient.scriptPubKey,
-        satsPerVbyte: widget.feeRate,
+        satsPerVbyte: feeRate,
       );
 
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => TransactionReviewScreen(
-            widget.korean: ko,
-            widget.selected: widget.selected,
-            widget.recipient: widget.recipient.address,
-            widget.feeRate: widget.feeRate,
-            widget.feeSats: finalized.widget.feeSats,
-            widget.receiveSats: finalized.sendSats,
-            widget.changeSats: finalized.widget.changeSats,
-            widget.changeAddress: finalized.widget.changeSats > 0
+            korean: ko,
+            selected: widget.selected,
+            recipient: recipient.address,
+            feeRate: feeRate,
+            feeSats: finalized.feeSats,
+            receiveSats: finalized.sendSats,
+            changeSats: finalized.changeSats,
+            changeAddress: finalized.changeSats > 0
                 ? widget.legacyAddress
                 : null,
-            widget.signedHex: finalized.signed.hex,
-            widget.txid: finalized.signed.widget.txid,
-            widget.vbytes: finalized.signed.widget.vbytes,
+            signedHex: finalized.signed.hex,
+            txid: finalized.signed.txid,
+            vbytes: finalized.signed.vbytes,
           ),
         ),
       );
@@ -696,13 +625,13 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
   Widget build(BuildContext context) {
     final ko = widget.korean;
     final selectedTotal = widget.selected.fold<int>(0, (sum, u) => sum + u.valueSats);
-    final widget.feeRate = _feeRate;
-    final validFee = widget.feeRate >= _rates.minimum;
+    final feeRate = _feeRate;
+    final validFee = feeRate >= _rates.minimum;
     final inputTypes = List<InputScriptType>.filled(widget.selected.length, InputScriptType.p2pkh);
     final feeQuote = FeeEstimator.estimate(
       inputs: inputTypes,
       outputCount: 1,
-      satsPerVbyte: validFee ? widget.feeRate : _rates.minimum,
+      satsPerVbyte: validFee ? feeRate : _rates.minimum,
     );
     final requestedSats = _requestedSats();
     final sendDraft = requestedSats == -1
@@ -710,18 +639,18 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
         : (() {
             try {
               return SendDraftBuilder.amountSpend(
-                widget.selected: widget.selected,
+                selected: widget.selected,
                 inputTypes: inputTypes,
-                widget.recipient: 'preview',
+                recipient: 'preview',
                 requestedSendSats: requestedSats,
-                satsPerVbyte: validFee ? widget.feeRate : _rates.minimum,
+                satsPerVbyte: validFee ? feeRate : _rates.minimum,
               );
             } on FormatException {
               return null;
             }
           })();
-    final widget.receiveSats = sendDraft?.sendSats ?? 0;
-    final widget.changeSats = sendDraft?.widget.changeSats ?? 0;
+    final receiveSats = sendDraft?.sendSats ?? 0;
+    final changeSats = sendDraft?.changeSats ?? 0;
 
     return Scaffold(
       appBar: AppBar(title: Text(ko ? '전송 초안' : 'Send draft')),
@@ -744,7 +673,7 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
               ButtonSegment(value: true, label: Text(ko ? 'MAX' : 'MAX')),
               ButtonSegment(value: false, label: Text(ko ? '직접 입력' : 'Custom amount')),
             ],
-            widget.selected: {_maxSpend},
+            selected: {_maxSpend},
             onSelectionChanged: (s) => setState(() => _maxSpend = s.first),
           ),
           if (!_maxSpend) ...[
@@ -791,18 +720,18 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
                 Text(ko ? 'MAX 전송 명세' : 'MAX transfer summary', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 12),
                 _AmountRow(label: ko ? '선택 UTXO 합계' : 'Selected total', sats: selectedTotal),
-                _AmountRow(label: ko ? '실제 전송액' : 'Recipient receives', sats: widget.receiveSats, emphasize: true),
-                _AmountRow(label: ko ? '예상 네트워크 수수료' : 'Estimated network fee', sats: sendDraft?.widget.feeSats ?? feeQuote.widget.feeSats),
-                _AmountRow(label: ko ? '내게 돌아오는 잔돈 (change)' : 'Change back to wallet', sats: widget.changeSats),
+                _AmountRow(label: ko ? '실제 전송액' : 'Recipient receives', sats: receiveSats, emphasize: true),
+                _AmountRow(label: ko ? '예상 네트워크 수수료' : 'Estimated network fee', sats: sendDraft?.feeSats ?? feeQuote.feeSats),
+                _AmountRow(label: ko ? '내게 돌아오는 잔돈 (change)' : 'Change back to wallet', sats: changeSats),
                 const Divider(),
-                Text('${feeQuote.widget.vbytes} vB × ${validFee ? widget.feeRate : _rates.minimum} sat/vB'),
+                Text('${feeQuote.vbytes} vB × ${validFee ? feeRate : _rates.minimum} sat/vB'),
                 Text(ko
-                    ? '예상 수수료: ${feeQuote.widget.feeSats} bick (≈ ${(feeQuote.widget.feeSats / 100000000).toStringAsFixed(8)} BMB)'
-                    : 'Estimated fee: ${feeQuote.widget.feeSats} bick (≈ ${(feeQuote.widget.feeSats / 100000000).toStringAsFixed(8)} BMB)'),
+                    ? '예상 수수료: ${feeQuote.feeSats} bick (≈ ${(feeQuote.feeSats / 100000000).toStringAsFixed(8)} BMB)'
+                    : 'Estimated fee: ${feeQuote.feeSats} bick (≈ ${(feeQuote.feeSats / 100000000).toStringAsFixed(8)} BMB)'),
                 const SizedBox(height: 6),
                 Text(ko
                     ? 'MAX에서는 선택한 UTXO 합계에서 네트워크 수수료를 뺀 금액을 수신자가 받습니다. 잔돈(change)은 0입니다.'
-                    : 'With MAX, the widget.recipient receives the widget.selected total minus the network fee. Change is zero.'),
+                    : 'With MAX, the recipient receives the selected total minus the network fee. Change is zero.'),
               ]),
             ),
           ),
@@ -815,7 +744,7 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
           )),
           const SizedBox(height: 16),
           FilledButton(
-            onPressed: validFee && sendDraft != null && widget.receiveSats > 0 ? _review : null,
+            onPressed: validFee && sendDraft != null && receiveSats > 0 ? _review : null,
             child: Text(ko ? '검토' : 'Review'),
           ),
         ],
@@ -878,6 +807,90 @@ class TransactionReviewScreen extends StatefulWidget {
   final int vbytes;
 
   @override
+  State<TransactionReviewScreen> createState() =>
+      _TransactionReviewScreenState();
+}
+
+class _TransactionReviewScreenState extends State<TransactionReviewScreen> {
+  bool _broadcasting = false;
+  String? _broadcastResult;
+
+  Future<void> _broadcast() async {
+    final ko = widget.korean;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          ko ? '실제 네트워크로 전송할까요?' : 'Broadcast to the live network?',
+        ),
+        content: Text(
+          ko
+              ? '이 작업은 실제 BTCMobick 트랜잭션을 전송합니다. 받는 주소, 금액, 수수료, change를 다시 확인하세요.'
+              : 'This sends a real BTCMobick transaction. Re-check the recipient, amount, fee, and change.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(ko ? '취소' : 'Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(ko ? '실제 전송' : 'Broadcast'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || _broadcasting) return;
+
+    setState(() => _broadcasting = true);
+    final client = ElectrumClient();
+    try {
+      await client.connect();
+      final serverTxid =
+          await client.broadcastTransaction(widget.signedHex);
+      if (!mounted) return;
+
+      if (serverTxid != widget.txid) {
+        setState(() => _broadcastResult = 'mismatch:$serverTxid');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              ko
+                  ? '경고: 서버 TXID가 로컬 TXID와 다릅니다. 추가 전송을 중단하세요.'
+                  : 'Warning: server TXID differs from the local TXID. Stop further sends.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      setState(() => _broadcastResult = serverTxid);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ko ? '브로드캐스트 성공' : 'Broadcast successful',
+          ),
+        ),
+      );
+    } on ElectrumException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ko
+                ? '브로드캐스트 실패: ${e.message}'
+                : 'Broadcast failed: ${e.message}',
+          ),
+        ),
+      );
+    } finally {
+      await client.close();
+      if (mounted) setState(() => _broadcasting = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final ko = widget.korean;
     final selectedTotal =
@@ -909,7 +922,7 @@ class TransactionReviewScreen extends StatefulWidget {
                     sats: selectedTotal,
                   ),
                   _AmountRow(
-                    label: ko ? '확정 수령액' : 'Final widget.recipient amount',
+                    label: ko ? '확정 수령액' : 'Final recipient amount',
                     sats: widget.receiveSats,
                     emphasize: true,
                   ),
@@ -931,15 +944,15 @@ class TransactionReviewScreen extends StatefulWidget {
                     SelectableText(widget.changeAddress!),
                   ],
                   const Divider(),
-                  Text('$widget.feeSats bick · $widget.feeRate sat/vB'),
-                  Text('$widget.vbytes vB'),
                   Text(
-                    '${widget.selected.length} UTXO input',
+                    '${widget.feeSats} bick · ${widget.feeRate} sat/vB',
                   ),
+                  Text('${widget.vbytes} vB'),
+                  Text('${widget.selected.length} UTXO input'),
                   const SizedBox(height: 8),
                   Text(
                     '${widget.receiveSats + widget.feeSats + widget.changeSats == selectedTotal ? '✓' : '⚠'} '
-                    '${ko ? '입력 = 수령액 + 수수료 + change' : 'inputs = widget.recipient + fee + change'}',
+                    '${ko ? '입력 = 수령액 + 수수료 + change' : 'inputs = recipient + fee + change'}',
                   ),
                 ],
               ),
@@ -962,7 +975,7 @@ class TransactionReviewScreen extends StatefulWidget {
                 .toList(),
           ),
           ExpansionTile(
-            title: Text(ko ? 'TXID' : 'TXID'),
+            title: const Text('TXID'),
             children: [
               Padding(
                 padding: const EdgeInsets.all(16),
@@ -971,9 +984,7 @@ class TransactionReviewScreen extends StatefulWidget {
             ],
           ),
           ExpansionTile(
-            title: Text(
-              ko ? 'Signed raw transaction' : 'Signed raw transaction',
-            ),
+            title: const Text('Signed raw transaction'),
             children: [
               Padding(
                 padding: const EdgeInsets.all(16),
@@ -990,8 +1001,8 @@ class TransactionReviewScreen extends StatefulWidget {
               padding: const EdgeInsets.all(16),
               child: Text(
                 ko
-                    ? '안전 잠금: 트랜잭션은 기기 안에서 서명되었지만 아직 BTCMobick 네트워크로 전송되지 않았습니다.'
-                    : 'Safety lock: the transaction is signed locally but has not been broadcast to the BTCMobick network.',
+                    ? '트랜잭션은 기기 안에서 서명되었습니다. 아래 버튼을 누르면 실제 BTCMobick 네트워크로 전송됩니다.'
+                    : 'The transaction is signed locally. The button below broadcasts it to the live BTCMobick network.',
               ),
             ),
           ),
@@ -1005,9 +1016,14 @@ class TransactionReviewScreen extends StatefulWidget {
             const SizedBox(height: 12),
           ],
           FilledButton.icon(
-            onPressed: _broadcasting || _broadcastResult != null ? null : _broadcast,
+            onPressed:
+                _broadcasting || _broadcastResult != null ? null : _broadcast,
             icon: _broadcasting
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Icon(Icons.send),
             label: Text(
               _broadcastResult != null
