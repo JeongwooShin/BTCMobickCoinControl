@@ -15,8 +15,13 @@ class AppLockService {
 
   static const _pinSaltKey = 'security.pin_salt.v1';
   static const _pinHashKey = 'security.pin_hash.v1';
-  static const _persistWalletKey = 'security.persist_wallet.v1';
-  static const _savedWifKey = 'wallet.wif.v1';
+  // Wallet persistence is intentionally disabled for the current release.
+  // TODO(wallet-persistence): If persistence is reintroduced, do not restore
+  // the old single-WIF design. Implement a multi-wallet list with stable IDs,
+  // public address metadata for display, individually encrypted WIF records,
+  // per-wallet deletion, and "disable storage" deleting every stored wallet.
+  // static const _persistWalletKey = 'security.persist_wallet.v1';
+  // static const _savedWifKey = 'wallet.wif.v1';
   static const _pinIterations = 150000;
 
   final FlutterSecureStorage _storage;
@@ -79,29 +84,8 @@ class AppLockService {
     }
   }
 
-  Future<bool> walletPersistenceEnabled() async =>
-      (await _storage.read(key: _persistWalletKey)) == 'true';
-
-  Future<void> setWalletPersistenceEnabled(bool enabled) async {
-    await _storage.write(
-      key: _persistWalletKey,
-      value: enabled ? 'true' : 'false',
-    );
-    if (!enabled) {
-      await clearSavedWallet();
-    }
-  }
-
-  Future<void> saveWalletWif(String wif) async {
-    if (!await walletPersistenceEnabled()) return;
-    if (wif.isEmpty) return;
-    // flutter_secure_storage encrypts the value using platform secure storage.
-    await _storage.write(key: _savedWifKey, value: wif);
-  }
-
-  Future<String?> readSavedWalletWif() => _storage.read(key: _savedWifKey);
-
-  Future<void> clearSavedWallet() => _storage.delete(key: _savedWifKey);
+  // Wallet save/read/delete APIs are intentionally disabled.
+  // See TODO(wallet-persistence) above before implementing them again.
 
   Future<void> changePin(String currentPin, String newPin) async {
     if (!await verifyPin(currentPin)) {
