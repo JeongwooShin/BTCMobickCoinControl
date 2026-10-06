@@ -425,9 +425,11 @@ class _SelectableUtxoGroup extends StatelessWidget {
 enum _FeeChoice { economy, normal, fast, custom }
 
 class SendDraftScreen extends StatefulWidget {
-  const SendDraftScreen({super.key, required this.korean, required this.selected});
+  const SendDraftScreen({super.key, required this.korean, required this.selected, required this.legacyAddress, required this.segwitAddress});
   final bool korean;
   final List<Utxo> selected;
+  final String legacyAddress;
+  final String segwitAddress;
 
   @override
   State<SendDraftScreen> createState() => _SendDraftScreenState();
@@ -488,11 +490,17 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
     final requested=_requestedSats();
     if(requested == -1){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(ko?'전송 금액을 확인하세요.':'Check the send amount.')));return;}
     final draft=SendDraftBuilder.amountSpend(selected:widget.selected,inputTypes:types,recipient:recipient.address,requestedSendSats:requested,satsPerVbyte:feeRate);
-    if(draft.changeSats != 0){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(ko?'부분 전송 raw TX는 다음 단계에서 change output과 함께 활성화됩니다.':'Partial-spend raw TX will be enabled with the change output in the next step.')));return;}
-    final tx=TransactionSerializer.legacyUnsigned(inputs:widget.selected,outputValueSats:draft.sendSats,outputScript:recipient.scriptPubKey);
+    final changeRecipient = RecipientAddressParser.parse(widget.legacyAddress);
+    final tx=TransactionSerializer.legacyUnsigned(
+      inputs:widget.selected,
+      outputValueSats:draft.sendSats,
+      outputScript:recipient.scriptPubKey,
+      changeValueSats:draft.changeSats,
+      changeScript:draft.changeSats > 0 ? changeRecipient.scriptPubKey : null,
+    );
     final receive=draft.sendSats;
     final quote=FeeQuote(vbytes:draft.estimatedVbytes,feeSats:draft.feeSats);
-    Navigator.of(context).push(MaterialPageRoute(builder:(_)=>TransactionReviewScreen(korean:ko,selected:widget.selected,recipient:recipient.address,feeRate:feeRate,feeSats:quote.feeSats,receiveSats:receive,unsignedHex:tx.hex)));
+    Navigator.of(context).push(MaterialPageRoute(builder:(_)=>TransactionReviewScreen(korean:ko,selected:widget.selected,recipient:recipient.address,feeRate:feeRate,feeSats:quote.feeSats,receiveSats:receive,unsignedHex:tx.hex,changeSats:draft.changeSats,changeAddress:draft.changeSats>0?widget.legacyAddress:null)));
   }
 
   int get _feeRate {
@@ -673,8 +681,8 @@ class _AmountRow extends StatelessWidget {
 
 
 class TransactionReviewScreen extends StatelessWidget {
-  const TransactionReviewScreen({super.key,required this.korean,required this.selected,required this.recipient,required this.feeRate,required this.feeSats,required this.receiveSats,required this.unsignedHex});
-  final bool korean; final List<Utxo> selected; final String recipient; final int feeRate; final int feeSats; final int receiveSats; final String unsignedHex;
+  const TransactionReviewScreen({super.key,required this.korean,required this.selected,required this.recipient,required this.feeRate,required this.feeSats,required this.receiveSats,required this.unsignedHex,required this.changeSats,required this.changeAddress});
+  final bool korean; final List<Utxo> selected; final String recipient; final int feeRate; final int feeSats; final int receiveSats; final String unsignedHex; final int changeSats; final String? changeAddress;
 
   @override
   Widget build(BuildContext context) {
@@ -688,6 +696,11 @@ class TransactionReviewScreen extends StatelessWidget {
           const Divider(),
           _AmountRow(label:ko?'실제 수령 예정액':'Recipient receives',sats:receiveSats,emphasize:true),
           _AmountRow(label:ko?'예상 수수료':'Estimated fee',sats:feeSats),
+          if(changeSats>0) _AmountRow(label:ko?'내게 돌아오는 잔돈':'Change back to wallet',sats:changeSats),
+          if(changeAddress!=null) ...[
+            Text(ko?'Change 주소':'Change address',style:Theme.of(context).textTheme.titleSmall),
+            SelectableText(changeAddress!),
+          ],
           Text('$feeSats bick · $feeRate sat/vB'),
           Text('${selected.length} UTXO input'),
         ]))),
