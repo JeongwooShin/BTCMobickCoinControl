@@ -17,14 +17,14 @@ class TransactionSerializer {
   }) {
     if (inputs.isEmpty || outputValueSats <= 0) throw const FormatException('Invalid transaction values.');
     final out=<int>[];
-    _u32(out,1);
+    _u32(out,2);
     _varInt(out,inputs.length);
     for(final u in inputs){
       final txid=_hex(u.txHash).reversed.toList();
       out.addAll(txid);
       _u32(out,u.txPosition);
       out.add(0); // empty scriptSig before signing
-      _u32(out,0xffffffff);
+      _u32(out,0xfffffffd);
     }
     final hasChange = changeValueSats > 0;
     if (hasChange && changeScript == null) {
