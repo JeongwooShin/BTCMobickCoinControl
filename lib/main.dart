@@ -858,7 +858,10 @@ class _TransactionReviewScreenState extends State<TransactionReviewScreen> {
   Future<bool> _reauthenticateForBroadcast() async {
     final ko = widget.korean;
 
-    if (await widget.securityService.canUseBiometrics()) {
+    final biometricEnabled =
+        await widget.securityService.biometricEnabled();
+    if (biometricEnabled &&
+        await widget.securityService.canUseBiometrics()) {
       final ok = await widget.securityService.authenticateBiometric(
         korean: ko,
       );
@@ -869,16 +872,24 @@ class _TransactionReviewScreenState extends State<TransactionReviewScreen> {
     final controller = TextEditingController();
     final pin = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
         title: Text(ko ? 'PIN 재확인' : 'Confirm PIN'),
         content: TextField(
           controller: controller,
+          autofocus: true,
           obscureText: true,
           maxLength: 6,
           keyboardType: TextInputType.number,
+          textInputAction: TextInputAction.done,
           enableSuggestions: false,
           autocorrect: false,
           enableIMEPersonalizedLearning: false,
+          onSubmitted: (value) {
+            if (value.length == 6) {
+              Navigator.of(dialogContext).pop(value);
+            }
+          },
           decoration: InputDecoration(
             labelText: ko ? '6자리 PIN' : '6-digit PIN',
             counterText: '',
@@ -886,21 +897,30 @@ class _TransactionReviewScreenState extends State<TransactionReviewScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: Text(ko ? '취소' : 'Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text),
+            onPressed: () {
+              final value = controller.text;
+              if (value.length == 6) {
+                Navigator.of(dialogContext).pop(value);
+              }
+            },
             child: Text(ko ? '확인' : 'Confirm'),
           ),
         ],
       ),
     );
-    controller.clear();
-    controller.dispose();
 
-    if (pin == null) return false;
-    final ok = await widget.securityService.verifyPin(pin);
+    final submittedPin = pin;
+    controller.clear();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+    });
+
+    if (submittedPin == null) return false;
+    final ok = await widget.securityService.verifyPin(submittedPin);
     if (!ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
