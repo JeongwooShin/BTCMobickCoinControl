@@ -1,6 +1,6 @@
 # Security Policy
 
-BTCMobick Coin Control handles cryptocurrency signing material. Security takes precedence over convenience.
+UTXO Control handles cryptocurrency signing material. Security takes precedence over convenience.
 
 ## Non-negotiable rules
 
