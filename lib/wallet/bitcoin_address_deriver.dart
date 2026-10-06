@@ -79,8 +79,7 @@ class BitcoinAddressDeriver {
   String _segwitV0Address(String hrp, Uint8List program) {
     final data = <int>[0, ..._convertBits(program, 8, 5, true)];
     final checksum = _bech32Checksum(hrp, data);
-    return '$hrp' '1' +
-        [...data, ...checksum].map((v) => _bech32[v]).join();
+    return '${hrp}1${[...data, ...checksum].map((v) => _bech32[v]).join()}';
   }
 
   List<int> _convertBits(
