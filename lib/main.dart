@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'network/electrum_client.dart';
+import 'wallet/address_script.dart';
+import 'wallet/bitcoin_address_deriver.dart';
+
 void main() {
   runApp(const MobickCoinControlApp());
 }
@@ -64,7 +68,7 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
     super.dispose();
   }
 
-  void _continue() {
+  Future<void> _continue() async {
     final value = _wifController.text.trim();
     if (value.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -73,17 +77,40 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
       return;
     }
 
-    // Deliberately do not log or persist the WIF.
-    // WIF validation/address derivation is the next implementation milestone.
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          _ko
-              ? '아직 지갑 엔진이 활성화되지 않았습니다. 개인키는 전송되지 않았습니다.'
-              : 'Wallet engine is not enabled yet. No key was transmitted.',
-        ),
-      ),
-    );
+    try {
+      final wallet = BitcoinAddressDeriver().deriveFromWif(value);
+      final client = ElectrumClient();
+      await client.connect();
+      try {
+        final legacyHash = AddressScript.electrumScriptHash(
+          AddressScript.p2pkh(wallet.publicKeyHash),
+        );
+        final segwitHash = AddressScript.electrumScriptHash(
+          AddressScript.p2wpkh(wallet.publicKeyHash),
+        );
+        final legacy = await client.listUnspent(legacyHash);
+        final segwit = await client.listUnspent(segwitHash);
+        if (!mounted) return;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => UtxoScreen(
+              korean: _ko,
+              legacyAddress: wallet.p2pkhAddress,
+              segwitAddress: wallet.p2wpkhAddress,
+              legacy: legacy,
+              segwit: segwit,
+            ),
+          ),
+        );
+      } finally {
+        await client.close();
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_ko ? '개인키 또는 네트워크를 확인하세요.' : 'Check the private key or network connection.')),
+      );
+    }
   }
 
   @override
@@ -197,6 +224,64 @@ class _SecurityNotice extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+
+class UtxoScreen extends StatelessWidget {
+  const UtxoScreen({super.key, required this.korean, required this.legacyAddress, required this.segwitAddress, required this.legacy, required this.segwit});
+  final bool korean;
+  final String legacyAddress;
+  final String segwitAddress;
+  final List<dynamic> legacy;
+  final List<dynamic> segwit;
+
+  @override
+  Widget build(BuildContext context) {
+    final all = [...legacy, ...segwit];
+    final total = all.fold<int>(0, (sum, u) => sum + (u.valueSats as int));
+    return Scaffold(
+      appBar: AppBar(title: Text(korean ? 'UTXO 조회' : 'UTXO lookup')),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Text(korean ? '총 잔액' : 'Total balance', style: Theme.of(context).textTheme.titleMedium),
+          Text('${(total / 100000000).toStringAsFixed(8)} BMB', style: Theme.of(context).textTheme.headlineMedium),
+          const SizedBox(height: 20),
+          _UtxoGroup(title: 'Native SegWit', address: segwitAddress, items: segwit),
+          const SizedBox(height: 16),
+          _UtxoGroup(title: 'Legacy', address: legacyAddress, items: legacy),
+        ],
+      ),
+    );
+  }
+}
+
+class _UtxoGroup extends StatelessWidget {
+  const _UtxoGroup({required this.title, required this.address, required this.items});
+  final String title;
+  final String address;
+  final List<dynamic> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 4),
+          SelectableText(address, style: Theme.of(context).textTheme.bodySmall),
+          const Divider(height: 24),
+          if (items.isEmpty) const Text('No UTXOs')
+          else ...items.map((u) => ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text('${(u.valueSats / 100000000).toStringAsFixed(8)} BMB'),
+            subtitle: Text('${u.txHash.substring(0, 12)}… : ${u.txPosition}'),
+          )),
+        ]),
       ),
     );
   }
