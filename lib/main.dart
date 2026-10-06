@@ -497,6 +497,11 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
                   ),
                   const Divider(),
                   Text('${feeQuote.vbytes} vB × $feeRate sat/vB'),
+                  Text(
+                    ko
+                        ? '예상 수수료: ${feeQuote.feeSats} bick (≈ ${(feeQuote.feeSats / 100000000).toStringAsFixed(8)} BMB)'
+                        : 'Estimated fee: ${feeQuote.feeSats} bick (≈ ${(feeQuote.feeSats / 100000000).toStringAsFixed(8)} BMB)',
+                  ),
                   const SizedBox(height: 6),
                   Text(
                     ko
