@@ -874,6 +874,64 @@ class _TransactionReviewScreenState extends State<TransactionReviewScreen> {
   bool _broadcasting = false;
   String? _broadcastResult;
 
+  Future<bool> _reauthenticateForBroadcast() async {
+    final ko = widget.korean;
+
+    if (await widget.securityService.canUseBiometrics()) {
+      final ok = await widget.securityService.authenticateBiometric(
+        korean: ko,
+      );
+      if (ok) return true;
+    }
+
+    if (!mounted) return false;
+    final controller = TextEditingController();
+    final pin = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(ko ? 'PIN 재확인' : 'Confirm PIN'),
+        content: TextField(
+          controller: controller,
+          obscureText: true,
+          maxLength: 6,
+          keyboardType: TextInputType.number,
+          enableSuggestions: false,
+          autocorrect: false,
+          enableIMEPersonalizedLearning: false,
+          decoration: InputDecoration(
+            labelText: ko ? '6자리 PIN' : '6-digit PIN',
+            counterText: '',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(ko ? '취소' : 'Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: Text(ko ? '확인' : 'Confirm'),
+          ),
+        ],
+      ),
+    );
+    controller.clear();
+    controller.dispose();
+
+    if (pin == null) return false;
+    final ok = await widget.securityService.verifyPin(pin);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ko ? 'PIN이 올바르지 않습니다.' : 'Incorrect PIN.',
+          ),
+        ),
+      );
+    }
+    return ok;
+  }
+
   Future<void> _broadcast() async {
     final ko = widget.korean;
     final confirmed = await showDialog<bool>(
@@ -901,6 +959,9 @@ class _TransactionReviewScreenState extends State<TransactionReviewScreen> {
     );
 
     if (confirmed != true || _broadcasting) return;
+
+    final authenticated = await _reauthenticateForBroadcast();
+    if (!authenticated || !mounted) return;
 
     setState(() => _broadcasting = true);
     final client = ElectrumClient();
