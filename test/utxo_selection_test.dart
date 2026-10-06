@@ -28,6 +28,7 @@ void main() {
           segwitAddress: 'bc1test',
           legacy: utxos,
           segwit: const [],
+          sessionWif: 'test-only-wif',
         ),
       ),
     );
