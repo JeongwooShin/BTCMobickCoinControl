@@ -6,7 +6,7 @@ UTXO Control is a non-custodial BTCMobick wallet utility that lets users inspect
 
 ## 1. Data we do not collect
 
-UTXO Control does not require an account and does not collect, store, sell, or share personal information.
+UTXO Control does not require an account and does not operate a user-profile, analytics, advertising, or application-backend database. It does not intentionally collect, store, sell, or profile personal information.
 
 In particular, UTXO Control does **not** collect or transmit:
 
@@ -27,9 +27,11 @@ Users are responsible for keeping an independent backup of their private keys or
 
 ## 3. Network communications
 
-To provide wallet functionality, the app communicates with the BTCMobick network infrastructure.
+To provide wallet functionality, the app communicates with BTCMobick network infrastructure.
 
-The app may send public blockchain data such as script hashes and transaction queries to a BTCMobick ElectrumX server, and may send a fully signed raw transaction when the user chooses to broadcast it. Private keys are not included in these network requests.
+The app sends public-blockchain query identifiers such as script hashes to a BTCMobick ElectrumX server to retrieve UTXOs, and sends a fully signed raw transaction when the user chooses to broadcast it. Private keys are not included in these network requests.
+
+As with ordinary internet connections, the remote network service may receive technical connection metadata such as the user's IP address. Public-wallet queries and signed blockchain transactions can also reveal public blockchain activity. UTXO Control does not use this information for advertising, analytics, or user profiling.
 
 When a user chooses “View in block explorer,” the app opens the BTCMobick block explorer in an external browser. The browser and the destination website may process network information according to their own privacy policies.
 
