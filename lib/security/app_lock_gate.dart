@@ -26,6 +26,7 @@ class _AppLockGateState extends State<AppLockGate>
   bool _unlocked = false;
   bool _biometricsAvailable = false;
   DateTime? _backgroundedAt;
+  int _unlockAttempt = 0;
 
   @override
   void initState() {
@@ -88,6 +89,7 @@ class _AppLockGateState extends State<AppLockGate>
     if (ok) {
       setState(() => _unlocked = true);
     } else {
+      setState(() => _unlockAttempt++);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('PIN이 올바르지 않습니다.')),
       );
@@ -119,6 +121,7 @@ class _AppLockGateState extends State<AppLockGate>
 
     if (!_unlocked) {
       return _UnlockScreen(
+        key: ValueKey(_unlockAttempt),
         biometricsAvailable: _biometricsAvailable,
         onPinSubmitted: _unlockWithPin,
         onBiometric: _unlockWithBiometric,
@@ -229,6 +232,7 @@ class _PinSetupScreenState extends State<_PinSetupScreen> {
 
 class _UnlockScreen extends StatefulWidget {
   const _UnlockScreen({
+    super.key,
     required this.biometricsAvailable,
     required this.onPinSubmitted,
     required this.onBiometric,
