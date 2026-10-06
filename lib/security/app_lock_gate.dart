@@ -256,9 +256,11 @@ class _UnlockScreenState extends State<_UnlockScreen> {
   Future<void> _submit() async {
     if (_busy) return;
     setState(() => _busy = true);
+    final submitted = _pin.text;
+    _pin.clear();
+    FocusManager.instance.primaryFocus?.unfocus();
     try {
-      await widget.onPinSubmitted(_pin.text);
-      _pin.clear();
+      await widget.onPinSubmitted(submitted);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -339,6 +341,8 @@ class _PinField extends StatelessWidget {
         FilteringTextInputFormatter.digitsOnly,
         LengthLimitingTextInputFormatter(6),
       ],
+      textInputAction:
+          onSubmitted == null ? TextInputAction.next : TextInputAction.done,
       onSubmitted: onSubmitted,
       decoration: InputDecoration(
         labelText: label,
