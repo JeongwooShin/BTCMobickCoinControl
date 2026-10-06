@@ -12,6 +12,7 @@ import 'wallet/fee_rate_options.dart';
 import 'wallet/recipient_address.dart';
 import 'wallet/send_draft.dart';
 import 'wallet/transaction_serializer.dart';
+import 'wallet/legacy_transaction_finalizer.dart';
 
 void main() {
   runApp(const MobickCoinControlApp());
@@ -111,9 +112,11 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
               segwitAddress: wallet.p2wpkhAddress,
               legacy: legacy,
               segwit: segwit,
+              sessionWif: value,
             ),
           ),
         );
+        _wifController.clear();
       } finally {
         await client.close();
       }
@@ -266,12 +269,14 @@ class _SecurityNotice extends StatelessWidget {
 
 
 class UtxoScreen extends StatefulWidget {
-  const UtxoScreen({super.key, required this.korean, required this.legacyAddress, required this.segwitAddress, required this.legacy, required this.segwit});
+  const UtxoScreen({super.key, required this.korean, required this.legacyAddress, required this.segwitAddress, required this.legacy, required this.segwit, required this.sessionWif});
   final bool korean;
   final String legacyAddress;
   final String segwitAddress;
+  final String sessionWif;
   final List<Utxo> legacy;
   final List<Utxo> segwit;
+  final String sessionWif;
 
   @override
   State<UtxoScreen> createState() => _UtxoScreenState();
@@ -310,13 +315,35 @@ class _UtxoScreenState extends State<UtxoScreen> {
 
   void _preview() {
     if (_selected.isEmpty) return;
+
+    final selectedLegacy = widget.legacy
+        .where((u) => _selected.contains(_key(u)))
+        .toList(growable: false);
+    final selectedSegwit = widget.segwit
+        .where((u) => _selected.contains(_key(u)))
+        .toList(growable: false);
+
+    if (selectedSegwit.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.korean
+                ? '현재 서명 엔진은 Legacy UTXO만 지원합니다. Native SegWit 서명은 다음 단계에서 추가됩니다.'
+                : 'The current signing engine supports Legacy UTXOs only. Native SegWit signing comes next.',
+          ),
+        ),
+      );
+      return;
+    }
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => SendDraftScreen(
           korean: widget.korean,
-          selected: _all.where((u) => _selected.contains(_key(u))).toList(),
+          selected: selectedLegacy,
           legacyAddress: widget.legacyAddress,
           segwitAddress: widget.segwitAddress,
+          sessionWif: widget.sessionWif,
         ),
       ),
     );
@@ -427,7 +454,7 @@ class _SelectableUtxoGroup extends StatelessWidget {
 enum _FeeChoice { economy, normal, fast, custom }
 
 class SendDraftScreen extends StatefulWidget {
-  const SendDraftScreen({super.key, required this.korean, required this.selected, required this.legacyAddress, required this.segwitAddress});
+  const SendDraftScreen({super.key, required this.korean, required this.selected, required this.legacyAddress, required this.segwitAddress, required this.sessionWif});
   final bool korean;
   final List<Utxo> selected;
   final String legacyAddress;
@@ -480,29 +507,99 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
     try {
       recipient = RecipientAddressParser.parse(_recipient.text);
     } on FormatException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ko ? '받는 주소 오류: ${e.message}' : 'Recipient error: ${e.message}')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ko
+                ? '받는 주소 오류: ${e.message}'
+                : 'Recipient error: ${e.message}',
+          ),
+        ),
+      );
       return;
     }
+
     final feeRate = _feeRate;
     if (feeRate < _rates.minimum) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ko ? '수수료율을 확인하세요.' : 'Check the fee rate.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ko ? '수수료율을 확인하세요.' : 'Check the fee rate.',
+          ),
+        ),
+      );
       return;
     }
-    final types=List<InputScriptType>.filled(widget.selected.length,InputScriptType.p2pkh);
-    final requested=_requestedSats();
-    if(requested == -1){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(ko?'전송 금액을 확인하세요.':'Check the send amount.')));return;}
-    final draft=SendDraftBuilder.amountSpend(selected:widget.selected,inputTypes:types,recipient:recipient.address,requestedSendSats:requested,satsPerVbyte:feeRate);
-    final changeRecipient = RecipientAddressParser.parse(widget.legacyAddress);
-    final tx=TransactionSerializer.legacyUnsigned(
-      inputs:widget.selected,
-      outputValueSats:draft.sendSats,
-      outputScript:recipient.scriptPubKey,
-      changeValueSats:draft.changeSats,
-      changeScript:draft.changeSats > 0 ? changeRecipient.scriptPubKey : null,
-    );
-    final receive=draft.sendSats;
-    final quote=FeeQuote(vbytes:draft.estimatedVbytes,feeSats:draft.feeSats);
-    Navigator.of(context).push(MaterialPageRoute(builder:(_)=>TransactionReviewScreen(korean:ko,selected:widget.selected,recipient:recipient.address,feeRate:feeRate,feeSats:quote.feeSats,receiveSats:receive,unsignedHex:tx.hex,changeSats:draft.changeSats,changeAddress:draft.changeSats>0?widget.legacyAddress:null)));
+
+    final requested = _requestedSats();
+    if (requested == -1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ko ? '전송 금액을 확인하세요.' : 'Check the send amount.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    try {
+      final wallet = BitcoinAddressDeriver().deriveFromWif(widget.sessionWif);
+      final sourceScript = AddressScript.p2pkh(wallet.publicKeyHash);
+      final changeRecipient = RecipientAddressParser.parse(
+        widget.legacyAddress,
+      );
+
+      final finalized = LegacyTransactionFinalizer.finalize(
+        wif: widget.sessionWif,
+        inputs: widget.selected,
+        sourceScriptPubKey: sourceScript,
+        recipientScriptPubKey: recipient.scriptPubKey,
+        requestedSendSats: requested,
+        changeScriptPubKey: changeRecipient.scriptPubKey,
+        satsPerVbyte: feeRate,
+      );
+
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => TransactionReviewScreen(
+            korean: ko,
+            selected: widget.selected,
+            recipient: recipient.address,
+            feeRate: feeRate,
+            feeSats: finalized.feeSats,
+            receiveSats: finalized.sendSats,
+            changeSats: finalized.changeSats,
+            changeAddress: finalized.changeSats > 0
+                ? widget.legacyAddress
+                : null,
+            signedHex: finalized.signed.hex,
+            txid: finalized.signed.txid,
+            vbytes: finalized.signed.vbytes,
+          ),
+        ),
+      );
+    } on FormatException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ko
+                ? '트랜잭션 생성 오류: ${e.message}'
+                : 'Transaction error: ${e.message}',
+          ),
+        ),
+      );
+    } on StateError catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ko
+                ? '서명된 트랜잭션 크기가 안정적으로 확정되지 않았습니다.'
+                : 'Signed transaction size did not converge safely.',
+          ),
+        ),
+      );
+    }
   }
 
   int get _feeRate {
@@ -643,8 +740,8 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
           Card(child: Padding(
             padding: const EdgeInsets.all(16),
             child: Text(ko
-                ? '안전 잠금: 현재 단계에서는 트랜잭션 생성, 서명, 브로드캐스트를 하지 않습니다.'
-                : 'Safety lock: this build does not construct, sign, or broadcast a transaction yet.'),
+                ? '안전 잠금: 검토 단계에서 로컬 서명된 트랜잭션을 만들지만, 네트워크 브로드캐스트는 아직 비활성화되어 있습니다.'
+                : 'Safety lock: review creates a locally signed transaction, but network broadcast remains disabled.'),
           )),
           const SizedBox(height: 16),
           FilledButton(
@@ -683,45 +780,162 @@ class _AmountRow extends StatelessWidget {
 
 
 class TransactionReviewScreen extends StatelessWidget {
-  const TransactionReviewScreen({super.key,required this.korean,required this.selected,required this.recipient,required this.feeRate,required this.feeSats,required this.receiveSats,required this.unsignedHex,required this.changeSats,required this.changeAddress});
-  final bool korean; final List<Utxo> selected; final String recipient; final int feeRate; final int feeSats; final int receiveSats; final String unsignedHex; final int changeSats; final String? changeAddress;
+  const TransactionReviewScreen({
+    super.key,
+    required this.korean,
+    required this.selected,
+    required this.recipient,
+    required this.feeRate,
+    required this.feeSats,
+    required this.receiveSats,
+    required this.changeSats,
+    required this.changeAddress,
+    required this.signedHex,
+    required this.txid,
+    required this.vbytes,
+  });
+
+  final bool korean;
+  final List<Utxo> selected;
+  final String recipient;
+  final int feeRate;
+  final int feeSats;
+  final int receiveSats;
+  final int changeSats;
+  final String? changeAddress;
+  final String signedHex;
+  final String txid;
+  final int vbytes;
 
   @override
   Widget build(BuildContext context) {
-    final ko=korean;
+    final ko = korean;
+    final selectedTotal =
+        selected.fold<int>(0, (sum, u) => sum + u.valueSats);
+
     return Scaffold(
-      appBar: AppBar(title: Text(ko?'최종 검토 (미서명)':'Final review (unsigned)')),
-      body: ListView(padding:const EdgeInsets.all(20),children:[
-        Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-          Text(ko?'받는 주소':'Recipient',style:Theme.of(context).textTheme.titleMedium),
-          SelectableText(recipient),
-          const Divider(),
-          _AmountRow(label:ko?'실제 수령 예정액':'Recipient receives',sats:receiveSats,emphasize:true),
-          _AmountRow(label:ko?'예상 수수료':'Estimated fee',sats:feeSats),
-          if(changeSats>0) _AmountRow(label:ko?'내게 돌아오는 잔돈':'Change back to wallet',sats:changeSats),
-          if(changeAddress!=null) ...[
-            Text(ko?'Change 주소':'Change address',style:Theme.of(context).textTheme.titleSmall),
-            SelectableText(changeAddress!),
-          ],
-          Text('$feeSats bick · $feeRate sat/vB'),
-          Text('${selected.length} UTXO input'),
-        ]))),
-        const SizedBox(height:16),
-        ExpansionTile(
-          title:Text(ko?'사용 UTXO 보기':'View inputs'),
-          children:selected.map((u)=>ListTile(title:Text('${(u.valueSats/100000000).toStringAsFixed(8)} BMB'),subtitle:SelectableText('${u.txHash}:${u.txPosition}'))).toList(),
+      appBar: AppBar(
+        title: Text(
+          ko ? '최종 검토 (서명 완료)' : 'Final review (signed)',
         ),
-        ExpansionTile(
-          title:Text(ko?'Unsigned raw transaction':'Unsigned raw transaction'),
-          children:[Padding(padding:const EdgeInsets.all(16),child:SelectableText(unsignedHex,style:Theme.of(context).textTheme.bodySmall))],
-        ),
-        const SizedBox(height:20),
-        Card(child:Padding(padding:const EdgeInsets.all(16),child:Text(ko
-          ?'안전 잠금: 이 트랜잭션은 아직 서명되지 않았으며 네트워크로 브로드캐스트할 수 없습니다.'
-          :'Safety lock: this transaction is unsigned and cannot be broadcast.'))),
-        const SizedBox(height:16),
-        FilledButton(onPressed:null,child:Text(ko?'서명 및 전송 (아직 비활성)':'Sign & send (disabled)')),
-      ]),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    ko ? '받는 주소' : 'Recipient',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  SelectableText(recipient),
+                  const Divider(),
+                  _AmountRow(
+                    label: ko ? '선택 UTXO 합계' : 'Selected total',
+                    sats: selectedTotal,
+                  ),
+                  _AmountRow(
+                    label: ko ? '확정 수령액' : 'Final recipient amount',
+                    sats: receiveSats,
+                    emphasize: true,
+                  ),
+                  _AmountRow(
+                    label: ko ? '확정 네트워크 수수료' : 'Final network fee',
+                    sats: feeSats,
+                  ),
+                  if (changeSats > 0)
+                    _AmountRow(
+                      label: ko ? '내게 돌아오는 잔돈' : 'Change back to wallet',
+                      sats: changeSats,
+                    ),
+                  if (changeAddress != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      ko ? 'Change 주소' : 'Change address',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    SelectableText(changeAddress!),
+                  ],
+                  const Divider(),
+                  Text('$feeSats bick · $feeRate sat/vB'),
+                  Text('$vbytes vB'),
+                  Text(
+                    '${selected.length} UTXO input',
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${receiveSats + feeSats + changeSats == selectedTotal ? '✓' : '⚠'} '
+                    '${ko ? '입력 = 수령액 + 수수료 + change' : 'inputs = recipient + fee + change'}',
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          ExpansionTile(
+            title: Text(ko ? '사용 UTXO 보기' : 'View inputs'),
+            children: selected
+                .map(
+                  (u) => ListTile(
+                    title: Text(
+                      '${(u.valueSats / 100000000).toStringAsFixed(8)} BMB',
+                    ),
+                    subtitle: SelectableText(
+                      '${u.txHash}:${u.txPosition}',
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+          ExpansionTile(
+            title: Text(ko ? 'TXID' : 'TXID'),
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: SelectableText(txid),
+              ),
+            ],
+          ),
+          ExpansionTile(
+            title: Text(
+              ko ? 'Signed raw transaction' : 'Signed raw transaction',
+            ),
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: SelectableText(
+                  signedHex,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                ko
+                    ? '안전 잠금: 트랜잭션은 기기 안에서 서명되었지만 아직 BTCMobick 네트워크로 전송되지 않았습니다.'
+                    : 'Safety lock: the transaction is signed locally but has not been broadcast to the BTCMobick network.',
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: null,
+            child: Text(
+              ko
+                  ? '네트워크로 전송 (교차검증 후 활성화)'
+                  : 'Broadcast (enabled after cross-check)',
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
