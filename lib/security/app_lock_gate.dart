@@ -58,8 +58,9 @@ class _AppLockGateState extends State<AppLockGate>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Do not lock on `inactive`: Android biometric/system dialogs can make
+    // the activity briefly inactive without the user actually leaving the app.
     if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive ||
         state == AppLifecycleState.hidden) {
       _backgroundedAt ??= DateTime.now();
       if (_unlocked && widget.relockAfter == Duration.zero) {
