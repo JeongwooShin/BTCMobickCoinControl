@@ -1,30 +1,39 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
+import 'package:btcmobick_coin_control/main.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:btcmobick_coin_control/main.dart';
-
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('Korean wallet import screen is the default',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const MobickCoinControlApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(find.text('BTCMobick Coin Control'), findsOneWidget);
+    expect(find.text('지갑 열기'), findsOneWidget);
+    expect(find.text('WIF 개인키'), findsOneWidget);
+    expect(find.text('계속'), findsOneWidget);
+    expect(find.textContaining('트랜잭션 서명과 브로드캐스트는 비활성화'),
+        findsOneWidget);
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+  testWidgets('empty WIF is rejected locally in Korean',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const MobickCoinControlApp());
+
+    await tester.tap(find.text('계속'));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('WIF 개인키를 입력하세요.'), findsOneWidget);
+  });
+
+  testWidgets('language can switch to English', (WidgetTester tester) async {
+    await tester.pumpWidget(const MobickCoinControlApp());
+
+    await tester.tap(find.text('한국어').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('English'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Open your wallet'), findsOneWidget);
+    expect(find.text('WIF private key'), findsOneWidget);
+    expect(find.text('Continue'), findsOneWidget);
   });
 }
