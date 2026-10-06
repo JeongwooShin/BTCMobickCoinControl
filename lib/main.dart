@@ -9,6 +9,8 @@ import 'wallet/bitcoin_address_deriver.dart';
 import 'wallet/wif_decoder.dart';
 import 'wallet/fee_estimator.dart';
 import 'wallet/fee_rate_options.dart';
+import 'wallet/recipient_address.dart';
+import 'wallet/transaction_serializer.dart';
 
 void main() {
   runApp(const MobickCoinControlApp());
@@ -457,6 +459,29 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
     }
   }
 
+  void _review() {
+    final ko = widget.korean;
+    RecipientAddress recipient;
+    try {
+      recipient = RecipientAddressParser.parse(_recipient.text);
+    } on FormatException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ko ? '받는 주소 오류: ${e.message}' : 'Recipient error: ${e.message}')));
+      return;
+    }
+    final feeRate = _feeRate;
+    if (feeRate < _rates.minimum) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ko ? '수수료율을 확인하세요.' : 'Check the fee rate.')));
+      return;
+    }
+    final types=List<InputScriptType>.filled(widget.selected.length,InputScriptType.p2pkh);
+    final quote=FeeEstimator.estimate(inputs:types,outputCount:1,satsPerVbyte:feeRate);
+    final total=widget.selected.fold<int>(0,(s,u)=>s+u.valueSats);
+    final receive=total-quote.feeSats;
+    if(receive<=0){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ko?'수수료를 제외한 전송액이 부족합니다.':'Amount after fee is too small.')));return;}
+    final tx=TransactionSerializer.legacyUnsigned(inputs:widget.selected,outputValueSats:receive,outputScript:recipient.scriptPubKey);
+    Navigator.of(context).push(MaterialPageRoute(builder:(_)=>TransactionReviewScreen(korean:ko,selected:widget.selected,recipient:recipient.address,feeRate:feeRate,feeSats:quote.feeSats,receiveSats:receive,unsignedHex:tx.hex)));
+  }
+
   int get _feeRate {
     return switch (_choice) {
       _FeeChoice.economy => _rates.economy,
@@ -560,8 +585,8 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
           )),
           const SizedBox(height: 16),
           FilledButton(
-            onPressed: null,
-            child: Text(ko ? '검토 및 서명 (아직 비활성)' : 'Review & sign (disabled)'),
+            onPressed: validFee && receiveSats > 0 ? _review : null,
+            child: Text(ko ? '검토' : 'Review'),
           ),
         ],
       ),
@@ -589,6 +614,46 @@ class _AmountRow extends StatelessWidget {
           Text('${(sats / 100000000).toStringAsFixed(8)} BMB', style: style),
         ],
       ),
+    );
+  }
+}
+
+
+class TransactionReviewScreen extends StatelessWidget {
+  const TransactionReviewScreen({super.key,required this.korean,required this.selected,required this.recipient,required this.feeRate,required this.feeSats,required this.receiveSats,required this.unsignedHex});
+  final bool korean; final List<Utxo> selected; final String recipient; final int feeRate; final int feeSats; final int receiveSats; final String unsignedHex;
+
+  @override
+  Widget build(BuildContext context) {
+    final ko=korean;
+    return Scaffold(
+      appBar: AppBar(title: Text(ko?'최종 검토 (미서명)':'Final review (unsigned)')),
+      body: ListView(padding:const EdgeInsets.all(20),children:[
+        Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Text(ko?'받는 주소':'Recipient',style:Theme.of(context).textTheme.titleMedium),
+          SelectableText(recipient),
+          const Divider(),
+          _AmountRow(label:ko?'실제 수령 예정액':'Recipient receives',sats:receiveSats,emphasize:true),
+          _AmountRow(label:ko?'예상 수수료':'Estimated fee',sats:feeSats),
+          Text('$feeSats bick · $feeRate sat/vB'),
+          Text('${selected.length} UTXO input'),
+        ]))),
+        const SizedBox(height:16),
+        ExpansionTile(
+          title:Text(ko?'사용 UTXO 보기':'View inputs'),
+          children:selected.map((u)=>ListTile(title:Text('${(u.valueSats/100000000).toStringAsFixed(8)} BMB'),subtitle:SelectableText('${u.txHash}:${u.txPosition}'))).toList(),
+        ),
+        ExpansionTile(
+          title:Text(ko?'Unsigned raw transaction':'Unsigned raw transaction'),
+          children:[Padding(padding:const EdgeInsets.all(16),child:SelectableText(unsignedHex,style:Theme.of(context).textTheme.bodySmall))],
+        ),
+        const SizedBox(height:20),
+        Card(child:Padding(padding:const EdgeInsets.all(16),child:Text(ko
+          ?'안전 잠금: 이 트랜잭션은 아직 서명되지 않았으며 네트워크로 브로드캐스트할 수 없습니다.'
+          :'Safety lock: this transaction is unsigned and cannot be broadcast.'))),
+        const SizedBox(height:16),
+        FilledButton(onPressed:null,child:Text(ko?'서명 및 전송 (아직 비활성)':'Sign & send (disabled)')),
+      ]),
     );
   }
 }
