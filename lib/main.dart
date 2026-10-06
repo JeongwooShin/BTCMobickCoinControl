@@ -8,7 +8,6 @@ import 'wallet/address_script.dart';
 import 'wallet/bitcoin_address_deriver.dart';
 import 'wallet/wif_decoder.dart';
 import 'wallet/fee_estimator.dart';
-import 'wallet/send_draft.dart';
 
 void main() {
   runApp(const MobickCoinControlApp());
