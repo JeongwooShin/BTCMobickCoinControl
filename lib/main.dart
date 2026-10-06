@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'domain/utxo.dart';
 import 'network/electrum_client.dart';
@@ -1276,6 +1277,37 @@ class _TransactionReviewScreenState extends State<TransactionReviewScreen> {
                 ),
               ],
             ),
+            if (!_broadcastResult!.startsWith('mismatch:')) ...[
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final uri = Uri.parse(
+                    'https://blockchain.mobick.info/ko/tx/${widget.txid}',
+                  );
+                  final opened = await launchUrl(
+                    uri,
+                    mode: LaunchMode.externalApplication,
+                  );
+                  if (!opened && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          ko
+                              ? '블록 익스플로러를 열지 못했습니다.'
+                              : 'Could not open the block explorer.',
+                        ),
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.open_in_new),
+                label: Text(
+                  ko
+                      ? '블록 익스플로러에서 보기'
+                      : 'View in block explorer',
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
           ],
           FilledButton.icon(
