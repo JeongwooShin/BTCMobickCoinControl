@@ -90,7 +90,7 @@ class LegacyTransactionFinalizer {
     }
 
     if (signed == null) {
-      throw const StateError('Transaction was not signed.');
+      throw StateError('Transaction was not signed.');
     }
 
     // One final build with the last measured fee. If signature length changes
@@ -114,7 +114,7 @@ class LegacyTransactionFinalizer {
     );
     final finalFee = finalSigned.vbytes * satsPerVbyte;
     if (finalFee != fee) {
-      throw const StateError('Signed transaction size did not converge.');
+      throw StateError('Signed transaction size did not converge.');
     }
     return FinalizedLegacyTransaction(
       signed: finalSigned,
