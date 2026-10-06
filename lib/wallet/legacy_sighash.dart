@@ -10,7 +10,7 @@ class LegacySighash {
     required List<({int valueSats, Uint8List scriptPubKey})> outputs,
   }) {
     if (signingIndex < 0 || signingIndex >= inputs.length) {
-      throw const RangeError('Invalid signing input index.');
+      throw RangeError('Invalid signing input index.');
     }
     final out=<int>[];
     _u32(out,1); _varInt(out,inputs.length);
