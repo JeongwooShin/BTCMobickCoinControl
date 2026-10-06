@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import 'network/electrum_client.dart';
@@ -113,6 +115,12 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_ko ? '개인키 형식 오류: ${error.message}' : 'Private key error: ${error.message}')),
+      );
+    } on HandshakeException catch (_) {
+      if (!mounted) return;
+      debugPrint('Mobick TLS handshake failed; no secrets logged.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_ko ? 'BTCMobick 보안 연결(TLS) 협상에 실패했습니다.' : 'BTCMobick TLS handshake failed.')),
       );
     } on ElectrumException catch (error) {
       if (!mounted) return;
