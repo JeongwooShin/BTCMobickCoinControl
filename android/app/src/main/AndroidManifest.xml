@@ -3,7 +3,7 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.HIDE_OVERLAY_WINDOWS" />
     <application
-        android:label="BTCMobick Coin Control"
+        android:label="UTXO Control"
         android:name="${applicationName}"
         android:icon="@drawable/ic_utxo"
         android:allowBackup="false">
