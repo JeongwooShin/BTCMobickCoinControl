@@ -30,6 +30,12 @@ class ElectrumClient {
   }
   throw const ElectrumException('Too many unrelated ElectrumX messages.');
  }
+ Future<int> estimateFeeSatsPerVbyte({int targetBlocks=2}) async {
+  final r=await request('blockchain.estimatefee',[targetBlocks]);
+  if(r is! num || r <= 0) return 1;
+  final satsPerVbyte=(r * 100000000 / 1000).ceil();
+  return satsPerVbyte < 1 ? 1 : satsPerVbyte;
+ }
  Future<List<Utxo>> listUnspent(String sh) async {
   final r=await request('blockchain.scripthash.listunspent',[sh]); if(r is! List)throw const ElectrumException('Malformed listunspent response.');
   return r.map((x){if(x is! Map)throw const FormatException('Malformed UTXO item.');return Utxo.fromElectrumJson(Map<String,dynamic>.from(x));}).toList(growable:false);
