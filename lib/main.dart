@@ -17,6 +17,7 @@ import 'wallet/fee_rate_options.dart';
 import 'wallet/recipient_address.dart';
 import 'wallet/send_draft.dart';
 import 'wallet/legacy_transaction_finalizer.dart';
+import 'wallet/segwit_transaction_finalizer.dart';
 
 void main() {
   runApp(const MobickCoinControlApp());
@@ -394,24 +395,28 @@ class _UtxoScreenState extends State<UtxoScreen> {
         .where((u) => _selected.contains(_key(u)))
         .toList(growable: false);
 
-    if (selectedSegwit.isNotEmpty) {
+    if (selectedLegacy.isNotEmpty && selectedSegwit.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             widget.korean
-                ? '현재 서명 엔진은 Legacy UTXO만 지원합니다. Native SegWit 서명은 다음 단계에서 추가됩니다.'
-                : 'The current signing engine supports Legacy UTXOs only. Native SegWit signing comes next.',
+                ? '현재는 Legacy와 Native SegWit UTXO를 한 트랜잭션에 섞어 쓰지 않습니다. 한 종류만 선택하세요.'
+                : 'Legacy and Native SegWit inputs cannot yet be mixed in one transaction. Select one type only.',
           ),
         ),
       );
       return;
     }
 
+    final isSegwit = selectedSegwit.isNotEmpty;
+    final selected = isSegwit ? selectedSegwit : selectedLegacy;
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => SendDraftScreen(
           korean: widget.korean,
-          selected: selectedLegacy,
+          selected: selected,
+          isSegwitSource: isSegwit,
           legacyAddress: widget.legacyAddress,
           segwitAddress: widget.segwitAddress,
           sessionWif: widget.sessionWif,
@@ -526,9 +531,10 @@ class _SelectableUtxoGroup extends StatelessWidget {
 enum _FeeChoice { economy, normal, fast, custom }
 
 class SendDraftScreen extends StatefulWidget {
-  const SendDraftScreen({super.key, required this.korean, required this.selected, required this.legacyAddress, required this.segwitAddress, required this.sessionWif, required this.securityService});
+  const SendDraftScreen({super.key, required this.korean, required this.selected, required this.isSegwitSource, required this.legacyAddress, required this.segwitAddress, required this.sessionWif, required this.securityService});
   final bool korean;
   final List<Utxo> selected;
+  final bool isSegwitSource;
   final String legacyAddress;
   final String segwitAddress;
   final String sessionWif;
