@@ -1,0 +1,45 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.code-workspace
+
+# Android
+android/.gradle/
+android/local.properties
+**/key.properties
+*.jks
+*.keystore
+
+# iOS/macOS
+**/Pods/
+**/.symlinks/
+**/Flutter/ephemeral/
+**/Generated.xcconfig
+**/flutter_export_environment.sh
+
+# Secrets / wallet material
+.env
+.env.*
+*.wif
+*.seed
+*.wallet
+secrets/
+private/
+address.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local tooling
+coverage/
+*.log
