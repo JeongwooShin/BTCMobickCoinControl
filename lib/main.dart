@@ -653,20 +653,56 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
 
     try {
       final wallet = BitcoinAddressDeriver().deriveFromWif(widget.sessionWif);
-      final sourceScript = AddressScript.p2pkh(wallet.publicKeyHash);
-      final changeRecipient = RecipientAddressParser.parse(
-        widget.legacyAddress,
-      );
 
-      final finalized = LegacyTransactionFinalizer.finalize(
-        wif: widget.sessionWif,
-        inputs: widget.selected,
-        sourceScriptPubKey: sourceScript,
-        recipientScriptPubKey: recipient.scriptPubKey,
-        requestedSendSats: requested,
-        changeScriptPubKey: changeRecipient.scriptPubKey,
-        satsPerVbyte: feeRate,
-      );
+      late final int feeSats;
+      late final int sendSats;
+      late final int changeSats;
+      late final String signedHex;
+      late final String txid;
+      late final int vbytes;
+      late final String? changeAddress;
+
+      if (widget.isSegwitSource) {
+        final sourceScriptCode = AddressScript.p2pkh(wallet.publicKeyHash);
+        final changeScript = AddressScript.p2wpkh(wallet.publicKeyHash);
+        final finalized = SegwitTransactionFinalizer.finalize(
+          wif: widget.sessionWif,
+          inputs: widget.selected,
+          sourceScriptCode: sourceScriptCode,
+          recipientScriptPubKey: recipient.scriptPubKey,
+          requestedSendSats: requested,
+          changeScriptPubKey: changeScript,
+          satsPerVbyte: feeRate,
+        );
+        feeSats = finalized.feeSats;
+        sendSats = finalized.sendSats;
+        changeSats = finalized.changeSats;
+        signedHex = finalized.signed.hex;
+        txid = finalized.signed.txid;
+        vbytes = finalized.signed.vbytes;
+        changeAddress = changeSats > 0 ? widget.segwitAddress : null;
+      } else {
+        final sourceScript = AddressScript.p2pkh(wallet.publicKeyHash);
+        final changeRecipient = RecipientAddressParser.parse(
+          widget.legacyAddress,
+        );
+        final finalized = LegacyTransactionFinalizer.finalize(
+          wif: widget.sessionWif,
+          inputs: widget.selected,
+          sourceScriptPubKey: sourceScript,
+          recipientScriptPubKey: recipient.scriptPubKey,
+          requestedSendSats: requested,
+          changeScriptPubKey: changeRecipient.scriptPubKey,
+          satsPerVbyte: feeRate,
+        );
+        feeSats = finalized.feeSats;
+        sendSats = finalized.sendSats;
+        changeSats = finalized.changeSats;
+        signedHex = finalized.signed.hex;
+        txid = finalized.signed.txid;
+        vbytes = finalized.signed.vbytes;
+        changeAddress = changeSats > 0 ? widget.legacyAddress : null;
+      }
 
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -675,15 +711,13 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
             selected: widget.selected,
             recipient: recipient.address,
             feeRate: feeRate,
-            feeSats: finalized.feeSats,
-            receiveSats: finalized.sendSats,
-            changeSats: finalized.changeSats,
-            changeAddress: finalized.changeSats > 0
-                ? widget.legacyAddress
-                : null,
-            signedHex: finalized.signed.hex,
-            txid: finalized.signed.txid,
-            vbytes: finalized.signed.vbytes,
+            feeSats: feeSats,
+            receiveSats: sendSats,
+            changeSats: changeSats,
+            changeAddress: changeAddress,
+            signedHex: signedHex,
+            txid: txid,
+            vbytes: vbytes,
             securityService: widget.securityService,
           ),
         ),
@@ -737,7 +771,12 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
     final selectedTotal = widget.selected.fold<int>(0, (sum, u) => sum + u.valueSats);
     final feeRate = _feeRate;
     final validFee = feeRate >= _rates.minimum;
-    final inputTypes = List<InputScriptType>.filled(widget.selected.length, InputScriptType.p2pkh);
+    final inputTypes = List<InputScriptType>.filled(
+      widget.selected.length,
+      widget.isSegwitSource
+          ? InputScriptType.p2wpkh
+          : InputScriptType.p2pkh,
+    );
     final feeQuote = FeeEstimator.estimate(
       inputs: inputTypes,
       outputCount: 1,
@@ -768,7 +807,10 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
         padding: const EdgeInsets.all(20),
         children: [
           Text(ko ? '선택한 UTXO' : 'Selected UTXOs', style: Theme.of(context).textTheme.titleMedium),
-          Text('${widget.selected.length} UTXO · ${(selectedTotal / 100000000).toStringAsFixed(8)} BMB'),
+          Text(
+            '${widget.selected.length} UTXO · ${(selectedTotal / 100000000).toStringAsFixed(8)} BMB · '
+            '${widget.isSegwitSource ? 'Native SegWit' : 'Legacy'}',
+          ),
           const SizedBox(height: 20),
           TextField(
             controller: _recipient,
