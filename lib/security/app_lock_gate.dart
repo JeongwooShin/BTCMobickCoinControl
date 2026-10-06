@@ -152,26 +152,33 @@ class _AppLockGateState extends State<AppLockGate>
       );
     }
 
-    if (!_unlocked) {
-      if (_biometricsAvailable &&
-          _biometricsEnabled &&
-          !_autoBiometricPending) {
-        _autoBiometricPending = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted || !_autoBiometricPending || _unlocked) return;
-          _autoBiometricPending = false;
-          _unlockWithBiometric();
-        });
-      }
-      return _UnlockScreen(
-        key: ValueKey(_unlockAttempt),
-        biometricsAvailable: _biometricsAvailable && _biometricsEnabled,
-        onPinSubmitted: _unlockWithPin,
-        onBiometric: _unlockWithBiometric,
-      );
+    if (!_unlocked &&
+        _biometricsAvailable &&
+        _biometricsEnabled &&
+        !_autoBiometricPending) {
+      _autoBiometricPending = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_autoBiometricPending || _unlocked) return;
+        _autoBiometricPending = false;
+        _unlockWithBiometric();
+      });
     }
 
-    return widget.child;
+    // Keep the application navigator mounted while locked. This preserves the
+    // current route and session-only WIF in RAM, but never writes the WIF to
+    // disk. If the process is killed/fully closed, the session is lost.
+    return IndexedStack(
+      index: _unlocked ? 0 : 1,
+      children: [
+        widget.child,
+        _UnlockScreen(
+          key: ValueKey(_unlockAttempt),
+          biometricsAvailable: _biometricsAvailable && _biometricsEnabled,
+          onPinSubmitted: _unlockWithPin,
+          onBiometric: _unlockWithBiometric,
+        ),
+      ],
+    );
   }
 }
 
