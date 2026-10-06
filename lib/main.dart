@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'domain/utxo.dart';
 import 'network/electrum_client.dart';
@@ -1198,10 +1199,34 @@ class _TransactionReviewScreenState extends State<TransactionReviewScreen> {
           ),
           const SizedBox(height: 16),
           if (_broadcastResult != null) ...[
-            SelectableText(
-              _broadcastResult!.startsWith('mismatch:')
-                  ? _broadcastResult!.substring('mismatch:'.length)
-                  : _broadcastResult!,
+            Row(
+              children: [
+                Expanded(
+                  child: SelectableText(
+                    _broadcastResult!.startsWith('mismatch:')
+                        ? _broadcastResult!.substring('mismatch:'.length)
+                        : _broadcastResult!,
+                  ),
+                ),
+                IconButton(
+                  tooltip: ko ? 'TXID 복사' : 'Copy TXID',
+                  onPressed: () async {
+                    final value = _broadcastResult!.startsWith('mismatch:')
+                        ? _broadcastResult!.substring('mismatch:'.length)
+                        : _broadcastResult!;
+                    await Clipboard.setData(ClipboardData(text: value));
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          ko ? 'TXID를 복사했습니다.' : 'TXID copied.',
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.copy_outlined),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
           ],
