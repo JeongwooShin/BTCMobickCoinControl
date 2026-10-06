@@ -25,6 +25,7 @@ class _AppLockGateState extends State<AppLockGate>
   bool _hasPin = false;
   bool _unlocked = false;
   bool _biometricsAvailable = false;
+  bool _biometricsEnabled = false;
   DateTime? _backgroundedAt;
   int _unlockAttempt = 0;
 
@@ -44,10 +45,12 @@ class _AppLockGateState extends State<AppLockGate>
   Future<void> _initialize() async {
     final hasPin = await widget.service.hasPin();
     final biometrics = await widget.service.canUseBiometrics();
+    final biometricEnabled = await widget.service.biometricEnabled();
     if (!mounted) return;
     setState(() {
       _hasPin = hasPin;
       _biometricsAvailable = biometrics;
+      _biometricsEnabled = biometricEnabled;
       _unlocked = false;
       _loading = false;
     });
@@ -75,10 +78,12 @@ class _AppLockGateState extends State<AppLockGate>
 
   Future<void> _pinCreated() async {
     final biometrics = await widget.service.canUseBiometrics();
+    final biometricEnabled = await widget.service.biometricEnabled();
     if (!mounted) return;
     setState(() {
       _hasPin = true;
       _biometricsAvailable = biometrics;
+      _biometricsEnabled = biometricEnabled;
       _unlocked = true;
     });
   }
@@ -122,7 +127,7 @@ class _AppLockGateState extends State<AppLockGate>
     if (!_unlocked) {
       return _UnlockScreen(
         key: ValueKey(_unlockAttempt),
-        biometricsAvailable: _biometricsAvailable,
+        biometricsAvailable: _biometricsAvailable && _biometricsEnabled,
         onPinSubmitted: _unlockWithPin,
         onBiometric: _unlockWithBiometric,
       );
