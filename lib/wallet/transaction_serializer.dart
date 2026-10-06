@@ -37,7 +37,7 @@ class TransactionSerializer {
     if(s.length!=64) throw const FormatException('Invalid txid.');
     return List.generate(32,(i)=>int.parse(s.substring(i*2,i*2+2),radix:16));
   }
-  static void _u32(List<int> o,int v){for(var i=0;i<4;i++)o.add((v>>(8*i))&0xff);}
+  static void _u32(List<int> o,int v){for(var i=0;i<4;i++){o.add((v>>(8*i))&0xff);}}
   static void _u64(List<int> o,int v){var n=BigInt.from(v);for(var i=0;i<8;i++){o.add((n&BigInt.from(255)).toInt());n>>=8;}}
   static void _varInt(List<int> o,int v){if(v<0xfd){o.add(v);return;}throw const FormatException('Large varint not implemented yet.');}
 }
