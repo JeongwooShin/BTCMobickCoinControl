@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import 'domain/utxo.dart';
 import 'network/electrum_client.dart';
 import 'wallet/address_script.dart';
 import 'wallet/bitcoin_address_deriver.dart';
@@ -264,13 +265,13 @@ class UtxoScreen extends StatelessWidget {
   final bool korean;
   final String legacyAddress;
   final String segwitAddress;
-  final List<dynamic> legacy;
-  final List<dynamic> segwit;
+  final List<Utxo> legacy;
+  final List<Utxo> segwit;
 
   @override
   Widget build(BuildContext context) {
     final all = [...legacy, ...segwit];
-    final total = all.fold<int>(0, (sum, u) => sum + (u.valueSats as int));
+    final total = all.fold<int>(0, (sum, u) => sum + u.valueSats);
     return Scaffold(
       appBar: AppBar(title: Text(korean ? 'UTXO 조회' : 'UTXO lookup')),
       body: ListView(
@@ -279,9 +280,9 @@ class UtxoScreen extends StatelessWidget {
           Text(korean ? '총 잔액' : 'Total balance', style: Theme.of(context).textTheme.titleMedium),
           Text('${(total / 100000000).toStringAsFixed(8)} BMB', style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 20),
-          _UtxoGroup(title: 'Native SegWit', address: segwitAddress, items: segwit),
+          _UtxoGroup(title: 'Native SegWit', address: segwitAddress, items: segwit, korean: korean),
           const SizedBox(height: 16),
-          _UtxoGroup(title: 'Legacy', address: legacyAddress, items: legacy),
+          _UtxoGroup(title: 'Legacy', address: legacyAddress, items: legacy, korean: korean),
         ],
       ),
     );
@@ -289,10 +290,11 @@ class UtxoScreen extends StatelessWidget {
 }
 
 class _UtxoGroup extends StatelessWidget {
-  const _UtxoGroup({required this.title, required this.address, required this.items});
+  const _UtxoGroup({required this.title, required this.address, required this.items, required this.korean});
   final String title;
   final String address;
-  final List<dynamic> items;
+  final List<Utxo> items;
+  final bool korean;
 
   @override
   Widget build(BuildContext context) {
@@ -304,7 +306,7 @@ class _UtxoGroup extends StatelessWidget {
           const SizedBox(height: 4),
           SelectableText(address, style: Theme.of(context).textTheme.bodySmall),
           const Divider(height: 24),
-          if (items.isEmpty) const Text('No UTXOs')
+          if (items.isEmpty) Text(korean ? 'UTXO 없음' : 'No UTXOs')
           else ...items.map((u) => ListTile(
             contentPadding: EdgeInsets.zero,
             title: Text('${(u.valueSats / 100000000).toStringAsFixed(8)} BMB'),
