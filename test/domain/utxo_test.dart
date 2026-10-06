@@ -1,0 +1,2 @@
+import 'package:btcmobick_coin_control/domain/utxo.dart'; import 'package:flutter_test/flutter_test.dart';
+void main(){test('parses Electrum UTXO',(){final u=Utxo.fromElectrumJson({'tx_hash':'0000000000000000000000000000000000000000000000000000000000000000','tx_pos':1,'value':123456789,'height':100});expect(u.txPosition,1);expect(u.valueSats,123456789);});test('rejects malformed UTXO',(){expect(()=>Utxo.fromElectrumJson({'tx_hash':'bad','tx_pos':-1,'value':1,'height':0}),throwsA(isA<FormatException>()));});}

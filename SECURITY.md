@@ -33,3 +33,21 @@ No production release should occur until:
 - ElectrumX failure and malformed-response handling is tested;
 - secrets are absent from the repository history;
 - release signing and store credentials are kept outside source control.
+
+
+## Threat model: compromised Android devices
+
+Application sandboxing, secure-window flags, overlay defenses, biometrics, and Android Keystore materially reduce common theft paths, but they cannot make a private key safe on a fully compromised device.
+
+If malware has root/system privileges, can instrument the wallet process, controls the keyboard/input method, or otherwise compromises the OS, it may observe a WIF while the user imports it or plaintext transaction/key material while the wallet legitimately uses it. Therefore:
+
+- default to no private-key persistence;
+- minimize plaintext WIF lifetime;
+- never place WIF in clipboard/logs;
+- protect sensitive UI from screenshots/casting and overlays;
+- mark sensitive views against accessibility snooping where the platform supports it;
+- require fresh user authentication for persisted-wallet unlock and high-risk actions;
+- encrypt persisted WIF with a random key protected by Android Keystore, preferably hardware-backed when available;
+- warn users not to import valuable keys on rooted, modified, untrusted, or malware-suspected devices.
+
+No release documentation may state that private-key theft is impossible.

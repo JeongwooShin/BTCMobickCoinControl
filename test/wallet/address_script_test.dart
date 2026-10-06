@@ -1,0 +1,2 @@
+import 'dart:typed_data'; import 'package:btcmobick_coin_control/wallet/address_script.dart'; import 'package:flutter_test/flutter_test.dart';
+void main(){test('P2WPKH script and Electrum hash deterministic',(){final h=Uint8List.fromList(List<int>.generate(20,(i)=>i));final s=AddressScript.p2wpkh(h);expect(s.length,22);expect(s[0],0);expect(s[1],0x14);expect(AddressScript.electrumScriptHash(s).length,64);});test('rejects wrong HASH160 length',(){expect(()=>AddressScript.p2pkh(Uint8List(19)),throwsA(isA<FormatException>()));});}
