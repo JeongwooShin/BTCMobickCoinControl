@@ -102,6 +102,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         ),
       );
       if (accepted != true) return;
+
       final authenticated = await _reauthenticate();
       if (!authenticated) {
         if (!mounted) return;
@@ -110,11 +111,41 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         );
         return;
       }
+    } else if (_persistWallet) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('저장 기능을 끌까요?'),
+          content: const Text(
+            '저장 기능을 끄면 이 앱에 저장되어 있던 모든 WIF 개인키가 즉시 삭제됩니다. '
+            '삭제된 개인키는 앱에서 복구할 수 없습니다. 계속하시겠습니까?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('취소'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('저장 끄기 및 모든 WIF 삭제'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
     }
 
     await widget.service.setWalletPersistenceEnabled(enabled);
     if (!mounted) return;
     setState(() => _persistWallet = enabled);
+
+    if (!enabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('개인키 저장을 껐고 저장된 모든 WIF를 삭제했습니다.'),
+        ),
+      );
+    }
   }
 
   Future<void> _deleteSavedWallet() async {
