@@ -1215,7 +1215,7 @@ class _TransactionReviewScreenState extends State<TransactionReviewScreen> {
                         ? _broadcastResult!.substring('mismatch:'.length)
                         : _broadcastResult!;
                     await Clipboard.setData(ClipboardData(text: value));
-                    if (!mounted) return;
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
