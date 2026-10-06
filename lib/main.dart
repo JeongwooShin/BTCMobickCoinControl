@@ -11,7 +11,6 @@ import 'wallet/fee_estimator.dart';
 import 'wallet/fee_rate_options.dart';
 import 'wallet/recipient_address.dart';
 import 'wallet/send_draft.dart';
-import 'wallet/transaction_serializer.dart';
 import 'wallet/legacy_transaction_finalizer.dart';
 
 void main() {
@@ -273,7 +272,6 @@ class UtxoScreen extends StatefulWidget {
   final bool korean;
   final String legacyAddress;
   final String segwitAddress;
-  final String sessionWif;
   final List<Utxo> legacy;
   final List<Utxo> segwit;
   final String sessionWif;
@@ -459,6 +457,7 @@ class SendDraftScreen extends StatefulWidget {
   final List<Utxo> selected;
   final String legacyAddress;
   final String segwitAddress;
+  final String sessionWif;
 
   @override
   State<SendDraftScreen> createState() => _SendDraftScreenState();
