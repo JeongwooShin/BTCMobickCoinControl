@@ -28,6 +28,7 @@ class _AppLockGateState extends State<AppLockGate>
   bool _biometricsEnabled = false;
   DateTime? _backgroundedAt;
   int _unlockAttempt = 0;
+  bool _autoBiometricPending = false;
 
   @override
   void initState() {
@@ -108,7 +109,10 @@ class _AppLockGateState extends State<AppLockGate>
   Future<void> _unlockWithBiometric() async {
     final ok = await widget.service.authenticateBiometric(korean: true);
     if (ok && mounted) {
-      setState(() => _unlocked = true);
+      setState(() {
+        _autoBiometricPending = false;
+        _unlocked = true;
+      });
     }
   }
 
@@ -116,11 +120,20 @@ class _AppLockGateState extends State<AppLockGate>
     final available = await widget.service.canUseBiometrics();
     final enabled = await widget.service.biometricEnabled();
     if (!mounted) return;
+    final shouldAutoPrompt = available && enabled;
     setState(() {
       _biometricsAvailable = available;
       _biometricsEnabled = enabled;
       _unlocked = false;
+      _autoBiometricPending = shouldAutoPrompt;
     });
+    if (shouldAutoPrompt) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_autoBiometricPending || _unlocked) return;
+        _autoBiometricPending = false;
+        _unlockWithBiometric();
+      });
+    }
   }
 
   @override
@@ -140,6 +153,16 @@ class _AppLockGateState extends State<AppLockGate>
     }
 
     if (!_unlocked) {
+      if (_biometricsAvailable &&
+          _biometricsEnabled &&
+          !_autoBiometricPending) {
+        _autoBiometricPending = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || !_autoBiometricPending || _unlocked) return;
+          _autoBiometricPending = false;
+          _unlockWithBiometric();
+        });
+      }
       return _UnlockScreen(
         key: ValueKey(_unlockAttempt),
         biometricsAvailable: _biometricsAvailable && _biometricsEnabled,
