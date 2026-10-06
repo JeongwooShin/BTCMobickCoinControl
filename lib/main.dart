@@ -117,7 +117,6 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
         );
         final legacy = await client.listUnspent(legacyHash);
         final segwit = await client.listUnspent(segwitHash);
-        await widget.securityService.saveWalletWif(value);
         if (!mounted) return;
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -165,22 +164,10 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
     }
   }
 
-  Future<void> _openSavedWallet() async {
-    final saved = await widget.securityService.readSavedWalletWif();
-    if (!mounted) return;
-    if (saved == null || saved.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _ko ? '저장된 지갑이 없습니다.' : 'No saved wallets.',
-          ),
-        ),
-      );
-      return;
-    }
-    _wifController.text = saved;
-    await _continue();
-  }
+  // Private-key persistence is intentionally disabled.
+  // TODO(wallet-persistence): if restored, replace the former single-WIF slot
+  // with a multi-wallet picker backed by independently encrypted records.
+  // The picker should display public addresses/labels only.
 
   @override
   Widget build(BuildContext context) {
@@ -235,7 +222,7 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
             const SizedBox(height: 8),
             Text(
               _ko
-                  ? '개인키는 이 기기 안에서만 처리됩니다. 현재 개발 버전은 개인키를 저장하거나 외부로 전송하지 않습니다.'
+                  ? '개인키는 이 기기 안에서만 처리되며 저장하거나 외부로 전송하지 않습니다.'
                   : 'Your private key will be handled locally on this device. '
                       'The first development build does not save or transmit it.',
             ),
@@ -262,12 +249,6 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: _loading ? null : _openSavedWallet,
-              icon: const Icon(Icons.lock_open_outlined),
-              label: Text(_ko ? '저장된 지갑 열기' : 'Open saved wallet'),
-            ),
-            const SizedBox(height: 8),
             OutlinedButton.icon(
               onPressed: null,
               icon: const Icon(Icons.qr_code_scanner),
