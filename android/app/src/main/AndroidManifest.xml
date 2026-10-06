@@ -5,7 +5,7 @@
     <application
         android:label="BTCMobick Coin Control"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/ic_utxo"
         android:allowBackup="false">
         <activity
             android:name=".MainActivity"
