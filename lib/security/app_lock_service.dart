@@ -108,7 +108,7 @@ class AppLockService {
   }
 
   static Uint8List _derivePin(String pin, Uint8List salt) {
-    final derivator = Pbkdf2KeyDerivator(HMac(SHA256Digest(), 64))
+    final derivator = PBKDF2KeyDerivator(HMac(SHA256Digest(), 64))
       ..init(Pbkdf2Parameters(salt, _pinIterations, 32));
     return derivator.process(Uint8List.fromList(utf8.encode(pin)));
   }
