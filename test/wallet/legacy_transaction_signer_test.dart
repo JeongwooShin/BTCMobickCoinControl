@@ -61,6 +61,41 @@ void main() {
     expect(a.hex.contains(pubHex), isTrue);
   });
 
+  test('matches independent scalar-one legacy fixture byte-for-byte', () {
+    final wallet = BitcoinAddressDeriver().deriveFromWif(wif);
+    final sourceScript = AddressScript.p2pkh(wallet.publicKeyHash);
+    final recipient = RecipientAddressParser.parse(
+      '1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH',
+    );
+    final input = Utxo(
+      txHash: List.filled(64, '1').join(),
+      txPosition: 0,
+      valueSats: 50000,
+      height: 1,
+    );
+
+    final signed = LegacyTransactionSigner.sign(
+      wif: wif,
+      inputs: [input],
+      sourceScriptPubKey: sourceScript,
+      outputs: [
+        LegacyOutput(
+          valueSats: 49000,
+          scriptPubKey: recipient.scriptPubKey,
+        ),
+      ],
+    );
+
+    const expectedHex =
+        '01000000011111111111111111111111111111111111111111111111111111111111111111000000006a473044022067b89339519b0212f0354c0be3e486755611c933a0238f14a8eb94d9436fc5be0220672589c233bb396922b54ef53587889d8926aaf6a1158e097a3f6758c97c808201210279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ffffffff0168bf0000000000001976a914751e76e8199196d454941c45d1b3a323f1433bd688ac00000000';
+    const expectedTxid =
+        '40ca317eb28db86c42fb2d93fbe4270e0a7e48166f6d3a41ecb01a3078d70e45';
+
+    expect(signed.hex, expectedHex);
+    expect(signed.txid, expectedTxid);
+    expect(signed.vbytes, 191);
+  });
+
   test('signed legacy transaction changes when output changes', () {
     final wallet = BitcoinAddressDeriver().deriveFromWif(wif);
     final sourceScript = AddressScript.p2pkh(wallet.publicKeyHash);
