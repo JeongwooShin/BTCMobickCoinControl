@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 
 import 'domain/utxo.dart';
 import 'network/electrum_client.dart';
+import 'security/app_lock_gate.dart';
+import 'security/app_lock_service.dart';
+import 'settings/security_settings_screen.dart';
 import 'wallet/address_script.dart';
 import 'wallet/bitcoin_address_deriver.dart';
 import 'wallet/wif_decoder.dart';
@@ -20,7 +23,9 @@ void main() {
 enum AppLanguage { korean, english }
 
 class MobickCoinControlApp extends StatefulWidget {
-  const MobickCoinControlApp({super.key});
+  const MobickCoinControlApp({super.key, this.enableSecurity = true});
+
+  final bool enableSecurity;
 
   @override
   State<MobickCoinControlApp> createState() => _MobickCoinControlAppState();
@@ -28,6 +33,7 @@ class MobickCoinControlApp extends StatefulWidget {
 
 class _MobickCoinControlAppState extends State<MobickCoinControlApp> {
   AppLanguage _language = AppLanguage.korean;
+  late final AppLockService _securityService = AppLockService();
 
   void _setLanguage(AppLanguage language) {
     setState(() => _language = language);
@@ -42,9 +48,16 @@ class _MobickCoinControlAppState extends State<MobickCoinControlApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF3157D5)),
         useMaterial3: true,
       ),
+      builder: widget.enableSecurity
+          ? (context, child) => AppLockGate(
+                service: _securityService,
+                child: child ?? const SizedBox.shrink(),
+              )
+          : null,
       home: WalletImportScreen(
         language: _language,
         onLanguageChanged: _setLanguage,
+        securityService: _securityService,
       ),
     );
   }
@@ -55,10 +68,12 @@ class WalletImportScreen extends StatefulWidget {
     super.key,
     required this.language,
     required this.onLanguageChanged,
+    required this.securityService,
   });
 
   final AppLanguage language;
   final ValueChanged<AppLanguage> onLanguageChanged;
+  final AppLockService securityService;
 
   @override
   State<WalletImportScreen> createState() => _WalletImportScreenState();
@@ -102,6 +117,7 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
         );
         final legacy = await client.listUnspent(legacyHash);
         final segwit = await client.listUnspent(segwitHash);
+        await widget.securityService.saveWalletWif(value);
         if (!mounted) return;
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -112,6 +128,7 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
               legacy: legacy,
               segwit: segwit,
               sessionWif: value,
+              securityService: widget.securityService,
             ),
           ),
         );
@@ -148,12 +165,42 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
     }
   }
 
+  Future<void> _openSavedWallet() async {
+    final saved = await widget.securityService.readSavedWalletWif();
+    if (!mounted) return;
+    if (saved == null || saved.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _ko ? '저장된 개인키가 없습니다.' : 'No saved private key.',
+          ),
+        ),
+      );
+      return;
+    }
+    _wifController.text = saved;
+    await _continue();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('BTCMobick Coin Control'),
         actions: [
+          IconButton(
+            tooltip: _ko ? '보안 설정' : 'Security settings',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => SecuritySettingsScreen(
+                    service: widget.securityService,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.settings_outlined),
+          ),
           PopupMenuButton<AppLanguage>(
             tooltip: _ko ? '언어 선택' : 'Select language',
             initialValue: widget.language,
@@ -198,6 +245,7 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
               obscureText: _obscureWif,
               enableSuggestions: false,
               autocorrect: false,
+              enableIMEPersonalizedLearning: false,
               keyboardType: TextInputType.visiblePassword,
               decoration: InputDecoration(
                 labelText: _ko ? 'WIF 개인키' : 'WIF private key',
@@ -214,6 +262,12 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
               ),
             ),
             const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _loading ? null : _openSavedWallet,
+              icon: const Icon(Icons.lock_open_outlined),
+              label: Text(_ko ? '저장된 지갑 열기' : 'Open saved wallet'),
+            ),
+            const SizedBox(height: 8),
             OutlinedButton.icon(
               onPressed: null,
               icon: const Icon(Icons.qr_code_scanner),
@@ -253,9 +307,8 @@ class _SecurityNotice extends StatelessWidget {
             Expanded(
               child: Text(
                 korean
-                    ? '개발 버전: 결정론적 테스트가 준비될 때까지 트랜잭션 서명과 브로드캐스트는 비활성화되어 있습니다.'
-                    : 'Development build: transaction signing and broadcasting are '
-                        'disabled until deterministic tests are in place.',
+                    ? '개인키는 기본적으로 저장하지 않습니다. 저장 기능을 켜면 기기 보안 저장소에 암호화하여 보관되지만, 침해된 기기에서는 위험을 완전히 제거할 수 없습니다.'
+                    : 'Private keys are not stored by default. Optional storage uses the device secure store, but a compromised device can never be made risk-free.',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
@@ -268,13 +321,14 @@ class _SecurityNotice extends StatelessWidget {
 
 
 class UtxoScreen extends StatefulWidget {
-  const UtxoScreen({super.key, required this.korean, required this.legacyAddress, required this.segwitAddress, required this.legacy, required this.segwit, required this.sessionWif});
+  const UtxoScreen({super.key, required this.korean, required this.legacyAddress, required this.segwitAddress, required this.legacy, required this.segwit, required this.sessionWif, required this.securityService});
   final bool korean;
   final String legacyAddress;
   final String segwitAddress;
   final List<Utxo> legacy;
   final List<Utxo> segwit;
   final String sessionWif;
+  final AppLockService securityService;
 
   @override
   State<UtxoScreen> createState() => _UtxoScreenState();
@@ -342,6 +396,7 @@ class _UtxoScreenState extends State<UtxoScreen> {
           legacyAddress: widget.legacyAddress,
           segwitAddress: widget.segwitAddress,
           sessionWif: widget.sessionWif,
+          securityService: widget.securityService,
         ),
       ),
     );
@@ -452,12 +507,13 @@ class _SelectableUtxoGroup extends StatelessWidget {
 enum _FeeChoice { economy, normal, fast, custom }
 
 class SendDraftScreen extends StatefulWidget {
-  const SendDraftScreen({super.key, required this.korean, required this.selected, required this.legacyAddress, required this.segwitAddress, required this.sessionWif});
+  const SendDraftScreen({super.key, required this.korean, required this.selected, required this.legacyAddress, required this.segwitAddress, required this.sessionWif, required this.securityService});
   final bool korean;
   final List<Utxo> selected;
   final String legacyAddress;
   final String segwitAddress;
   final String sessionWif;
+  final AppLockService securityService;
 
   @override
   State<SendDraftScreen> createState() => _SendDraftScreenState();
@@ -575,6 +631,7 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
             signedHex: finalized.signed.hex,
             txid: finalized.signed.txid,
             vbytes: finalized.signed.vbytes,
+            securityService: widget.securityService,
           ),
         ),
       );
@@ -792,6 +849,7 @@ class TransactionReviewScreen extends StatefulWidget {
     required this.signedHex,
     required this.txid,
     required this.vbytes,
+    required this.securityService,
   });
 
   final bool korean;
@@ -805,6 +863,7 @@ class TransactionReviewScreen extends StatefulWidget {
   final String signedHex;
   final String txid;
   final int vbytes;
+  final AppLockService securityService;
 
   @override
   State<TransactionReviewScreen> createState() =>
