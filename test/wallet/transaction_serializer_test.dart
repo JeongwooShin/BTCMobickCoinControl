@@ -19,7 +19,9 @@ void main(){
   final tx=TransactionSerializer.legacyUnsigned(inputs:input,outputValueSats:20000,outputScript:Uint8List.fromList([0x51]),changeValueSats:29774,changeScript:Uint8List.fromList([0x52]));
   expect(tx.hex.startsWith('0100000001'),isTrue);
   // Output count is 2; each one-byte script is encoded as length 01.
-  expect(tx.hex.contains('02000000000000000151'),isTrue);
-  expect(tx.hex.contains('014e740000000000000152'),isTrue);
+  // 20,000 = 0x4e20 -> little endian 204e000000000000.
+  // 29,774 = 0x744e -> little endian 4e74000000000000.
+  expect(tx.hex.contains('02204e0000000000000151'),isTrue);
+  expect(tx.hex.contains('4e740000000000000152'),isTrue);
  });
 }
