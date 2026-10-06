@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:btcmobick_coin_control/domain/utxo.dart';
 import 'package:btcmobick_coin_control/wallet/address_script.dart';
 import 'package:btcmobick_coin_control/wallet/bitcoin_address_deriver.dart';
@@ -15,7 +13,7 @@ void main() {
   test('Native SegWit P2WPKH signs witness transaction deterministically', () {
     final wallet = BitcoinAddressDeriver().deriveFromWif(testWif);
     final input = Utxo(
-      txHash: '11' * 32,
+      txHash: List<String>.filled(32, '11').join(),
       txPosition: 0,
       valueSats: 50000,
       height: 1,
@@ -60,7 +58,7 @@ void main() {
     final wallet = BitcoinAddressDeriver().deriveFromWif(testWif);
     final inputs = [
       Utxo(
-        txHash: '22' * 32,
+        txHash: List<String>.filled(32, '22').join(),
         txPosition: 1,
         valueSats: 100000,
         height: 1,
