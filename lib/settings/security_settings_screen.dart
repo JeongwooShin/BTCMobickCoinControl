@@ -34,6 +34,50 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     });
   }
 
+  Future<bool> _reauthenticate() async {
+    if (await widget.service.canUseBiometrics()) {
+      final ok = await widget.service.authenticateBiometric(korean: true);
+      if (ok) return true;
+    }
+
+    if (!mounted) return false;
+    final controller = TextEditingController();
+    final pin = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('PIN 재확인'),
+        content: TextField(
+          controller: controller,
+          obscureText: true,
+          maxLength: 6,
+          keyboardType: TextInputType.number,
+          enableSuggestions: false,
+          autocorrect: false,
+          enableIMEPersonalizedLearning: false,
+          decoration: const InputDecoration(
+            labelText: '6자리 PIN',
+            counterText: '',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('확인'),
+          ),
+        ],
+      ),
+    );
+    controller.clear();
+    controller.dispose();
+
+    if (pin == null) return false;
+    return widget.service.verifyPin(pin);
+  }
+
   Future<void> _setPersistence(bool enabled) async {
     if (enabled) {
       final accepted = await showDialog<bool>(
@@ -58,6 +102,14 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         ),
       );
       if (accepted != true) return;
+      final authenticated = await _reauthenticate();
+      if (!authenticated) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('재인증에 실패했습니다.')),
+        );
+        return;
+      }
     }
 
     await widget.service.setWalletPersistenceEnabled(enabled);
