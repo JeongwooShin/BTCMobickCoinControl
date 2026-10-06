@@ -47,7 +47,7 @@ class _MobickCoinControlAppState extends State<MobickCoinControlApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'BTCMobick Coin Control',
+      title: 'UTXO Control',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF3157D5)),
         useMaterial3: true,
@@ -213,7 +213,7 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('BTCMobick Coin Control'),
+        title: const Text('UTXO Control'),
         actions: [
           IconButton(
             tooltip: _ko ? '보안 설정' : 'Security settings',
