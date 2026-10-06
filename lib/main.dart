@@ -172,7 +172,7 @@ class _WalletImportScreenState extends State<WalletImportScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            _ko ? '저장된 개인키가 없습니다.' : 'No saved private key.',
+            _ko ? '저장된 지갑이 없습니다.' : 'No saved wallets.',
           ),
         ),
       );
@@ -307,8 +307,8 @@ class _SecurityNotice extends StatelessWidget {
             Expanded(
               child: Text(
                 korean
-                    ? '개인키는 기본적으로 저장하지 않습니다. 저장 기능을 켜면 기기 보안 저장소에 암호화하여 보관되지만, 침해된 기기에서는 위험을 완전히 제거할 수 없습니다.'
-                    : 'Private keys are not stored by default. Optional storage uses the device secure store, but a compromised device can never be made risk-free.',
+                    ? '개인키는 기본적으로 저장하지 않습니다. 저장 기능을 켜면 기기 보안 저장소에 암호화하여 보관되지만, 침해된 기기에서는 위험을 완전히 제거할 수 없습니다. 가급적 이 앱은 필요할 때만 개인키를 입력해 UTXO별 전송에 사용하고, 개인키는 저장하지 않는 것을 권장합니다.'
+                    : 'Private keys are not stored by default. Optional storage uses the device secure store, but a compromised device can never be made risk-free. Prefer entering a private key only when you need UTXO-level transfers, and avoid storing private keys in the app.',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
