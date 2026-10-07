@@ -12,19 +12,19 @@ The application ID becomes permanent after the first Play Console upload.
 
 ## Code and crypto
 
-- [ ] GitHub Actions `Flutter CI` passes `flutter analyze`
-- [ ] GitHub Actions `Flutter CI` passes all deterministic tests
+- [x] GitHub Actions `Flutter CI` passes `flutter analyze`
+- [x] GitHub Actions `Flutter CI` passes all deterministic tests
 - [ ] Legacy P2PKH real small-value send verified
 - [ ] Native SegWit P2WPKH real small-value send verified
 - [ ] MAX and partial send verified
 - [ ] Change handling verified
 - [x] A real small-value network send completed
 - [x] TXID returned by ElectrumX matched the locally calculated TXID
-- [ ] Broadcast failure and network-disconnect behavior reviewed
+- [x] Broadcast failure and network-disconnect behavior reviewed
 
 ## Secret handling
 
-- [ ] Repository history confirmed free of real WIF, seed, private key and signing secrets
+- [x] Repository history confirmed free of real WIF, seed, private key and signing secrets (public scalar-1 test vector only)
 - [x] No WIF/private-key logging found in the release path
 - [x] WIF is held in memory and is not persisted
 - [ ] Force-stop/process death verified to require WIF import again
@@ -50,7 +50,7 @@ The application ID becomes permanent after the first Play Console upload.
 - [x] The self-signed server certificate SHA-256 fingerprint is pinned
 - [x] TLS 1.3, certificate pin and Electrum protocol 1.4 handshake verified
 - [ ] Review the pin before the server certificate expires on 2027-06-06
-- [ ] Privacy policy accurately describes ElectrumX network metadata
+- [x] Privacy policy accurately describes ElectrumX network metadata
 - [x] No advertising or analytics SDK is included
 
 ## Release signing
@@ -59,7 +59,7 @@ The application ID becomes permanent after the first Play Console upload.
 - [x] Release signing configured without committing secrets
 - [x] Public upload-certificate fingerprints documented
 - [ ] Keystore and password file backed up to two secure locations
-- [ ] Release AAB built and signature verified
+- [x] Release AAB built and signature verified (GitHub Actions run `37566249079`)
 - [ ] Release installed through Play internal testing
 
 Back up both files before the first Play upload:
@@ -72,8 +72,8 @@ The properties file contains the password. Neither file may be committed to Git.
 ## Branding and store assets
 
 - [x] Final launcher name applied
-- [ ] Final launcher icon reviewed at all Android densities
-- [ ] Store icon 512×512 prepared
+- [x] Final launcher icon reviewed at all Android densities
+- [x] Store icon 512×512 prepared at `store-assets/utxo-control-icon-512.png`
 - [ ] Store title, descriptions and screenshots finalized
 
 ## Play Console
