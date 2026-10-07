@@ -6,8 +6,9 @@
     <application
         android:label="UTXO Control"
         android:name="${applicationName}"
-        android:icon="@drawable/ic_utxo"
-        android:allowBackup="false">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:usesCleartextTraffic="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"
