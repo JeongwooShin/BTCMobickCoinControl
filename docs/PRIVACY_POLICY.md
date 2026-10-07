@@ -29,7 +29,7 @@ Users are responsible for keeping an independent backup of their private keys or
 
 To provide wallet functionality, the app communicates with BTCMobick network infrastructure.
 
-The app sends public-blockchain query identifiers such as script hashes to a BTCMobick ElectrumX server to retrieve UTXOs, and sends a fully signed raw transaction when the user chooses to broadcast it. Private keys are not included in these network requests.
+The app sends public-blockchain query identifiers such as script hashes to the BTCMobick ElectrumX service at `wallet.mobick.info:40009` to retrieve UTXOs, and sends a fully signed raw transaction when the user chooses to broadcast it. The connection uses TLS and verifies the server certificate fingerprint. Private keys are not included in these network requests.
 
 As with ordinary internet connections, the remote network service may receive technical connection metadata such as the user's IP address. Public-wallet queries and signed blockchain transactions can also reveal public blockchain activity. UTXO Control does not use this information for advertising, analytics, or user profiling.
 

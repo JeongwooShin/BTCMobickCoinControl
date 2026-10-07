@@ -59,8 +59,8 @@ The existing Python sender will be added only after all real private keys and us
 - [Google Play listing draft](docs/PLAY_STORE_LISTING.md)
 - [Android release checklist](docs/RELEASE_CHECKLIST.md)
 
-The public website may mirror these documents at runbickers.com, but the repository is the canonical source for the open-source project.
+The public website may mirror these documents at runbickers.com, while this repository remains the canonical project source.
 
 ## License
 
-A source license will be finalized before the repository is made public. Until then, no license is granted merely by access to this private repository.
+A source license has not yet been selected. Until one is added, no license is granted merely because the source is visible in this public repository.
