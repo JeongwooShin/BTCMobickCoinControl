@@ -52,12 +52,18 @@ jobs:
             "$STORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" > android/key.properties
       - run: flutter pub get
       - run: flutter build appbundle --release
-      - name: Verify AAB signature
-        run: jarsigner -verify build/app/outputs/bundle/release/app-release.aab
+      - run: flutter build apk --release
+      - name: Verify release signatures
+        run: |
+          jarsigner -verify build/app/outputs/bundle/release/app-release.aab
+          APKSIGNER="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner"
+          "$APKSIGNER" verify --print-certs build/app/outputs/flutter-apk/app-release.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: utxo-control-release-aab
-          path: build/app/outputs/bundle/release/app-release.aab
+          name: utxo-control-release-builds
+          path: |
+            build/app/outputs/bundle/release/app-release.aab
+            build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
           retention-days: 14
       - name: Remove signing material
