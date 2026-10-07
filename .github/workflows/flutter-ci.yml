@@ -23,3 +23,43 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
+
+  release-aab:
+    if: github.event_name == 'workflow_dispatch'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.6'
+          channel: stable
+          cache: true
+      - name: Restore upload keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+        run: |
+          test -n "$KEYSTORE_BASE64"
+          test -n "$STORE_PASSWORD"
+          test -n "$KEY_PASSWORD"
+          test -n "$KEY_ALIAS"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=upload-keystore.jks\n' \
+            "$STORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" > android/key.properties
+      - run: flutter pub get
+      - run: flutter build appbundle --release
+      - name: Verify AAB signature
+        run: jarsigner -verify build/app/outputs/bundle/release/app-release.aab
+      - uses: actions/upload-artifact@v4
+        with:
+          name: utxo-control-release-aab
+          path: build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14
+      - name: Remove signing material
+        if: always()
+        run: rm -f android/app/upload-keystore.jks android/key.properties
