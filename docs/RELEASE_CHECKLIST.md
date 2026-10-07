@@ -27,7 +27,7 @@ The application ID becomes permanent after the first Play Console upload.
 - [x] Repository history confirmed free of real WIF, seed, private key and signing secrets (public scalar-1 test vector only)
 - [x] No WIF/private-key logging found in the release path
 - [x] WIF is held in memory and is not persisted
-- [ ] Force-stop/process death verified to require WIF import again
+- [x] Force-stop/process death verified to require WIF import again on the signed release build
 - [x] Screenshot protection verified on physical device (ADB capture is fully black)
 
 ## App security
