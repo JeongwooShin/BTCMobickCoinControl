@@ -6,7 +6,7 @@ void main() {
       (WidgetTester tester) async {
     await tester.pumpWidget(const MobickCoinControlApp(enableSecurity: false));
 
-    expect(find.text('BTCMobick Coin Control'), findsOneWidget);
+    expect(find.text('UTXO Control'), findsOneWidget);
     expect(find.text('지갑 열기'), findsOneWidget);
     expect(find.text('WIF 개인키'), findsOneWidget);
     expect(find.text('계속'), findsOneWidget);
