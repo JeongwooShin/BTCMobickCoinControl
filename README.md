@@ -1,8 +1,8 @@
 # UTXO Control
 
-A non-custodial Flutter wallet utility for BTCMobick focused on explicit UTXO (coin) control.
+A non-custodial Flutter wallet for BTCMobick focused on explicit UTXO (coin) control.
 
-> **Status:** Early development. Do not use with funds you cannot afford to lose.
+> **Status:** Release candidate. Real-network sends have been validated with small values; complete the release checklist before production distribution.
 
 ## Goals
 
@@ -17,8 +17,7 @@ A non-custodial Flutter wallet utility for BTCMobick focused on explicit UTXO (c
 
 ## Network
 
-The reference implementation currently targets the BTCMobick ElectrumX service at `wallet.mobick.info`.
-Network parameters and server endpoints will be isolated from UI code and documented before release.
+The Android app connects to the BTCMobick ElectrumX service at `wallet.mobick.info:40009` over TLS. Because the service currently uses a self-signed certificate, the app verifies its SHA-256 certificate fingerprint. A certificate rotation requires a reviewed app update before the old certificate expires.
 
 ## Security model
 
@@ -27,24 +26,27 @@ The application is intended to be non-custodial.
 - Private keys must never be transmitted to Runbickers or any application backend.
 - Transaction signing must happen locally.
 - No real WIF/private key, seed phrase, signing key, or production secret may be committed to this repository.
-- Initial development should prefer session-only key handling; persistent key storage is a later, separately reviewed feature.
+- WIF keys are held in memory for the active session and are not persisted.
 - Broadcast receives only a signed raw transaction.
 - Release builds must be tested against deterministic transaction test vectors and the existing Python reference implementation.
 
 See [SECURITY.md](SECURITY.md).
 
-## Development plan
+## Release status
 
-1. Bootstrap Flutter Android application and CI.
-2. Add pure-Dart address/WIF/network primitives with tests.
-3. Implement ElectrumX connection and UTXO retrieval.
-4. Implement transaction construction and signing against test vectors.
-5. Build UTXO selection and send/review UI.
-6. Add QR import and camera permissions.
-7. Perform small-value BTCMobick end-to-end testing.
-8. Security review and Android closed testing.
-9. Prepare Play Store release.
-10. Add iOS support after Android validation.
+Completed:
+
+- WIF import by QR scan and manual entry.
+- Local address derivation, UTXO lookup and explicit coin selection.
+- Legacy and Native SegWit transaction construction and local signing.
+- Recipient QR scan, review, reauthentication and network broadcast.
+- Small-value BTCMobick end-to-end testing.
+
+Remaining release gates:
+
+- Run the complete deterministic test suite in the release environment.
+- Build and verify the release-signed Android App Bundle.
+- Complete Android closed testing and the Google Play declarations.
 
 ## Reference implementation
 

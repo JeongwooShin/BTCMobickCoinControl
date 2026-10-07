@@ -896,8 +896,8 @@ class _SendDraftScreenState extends State<SendDraftScreen> {
           Card(child: Padding(
             padding: const EdgeInsets.all(16),
             child: Text(ko
-                ? '안전 잠금: 검토 단계에서 로컬 서명된 트랜잭션을 만들지만, 네트워크 브로드캐스트는 아직 비활성화되어 있습니다.'
-                : 'Safety lock: review creates a locally signed transaction, but network broadcast remains disabled.'),
+                ? '거래는 기기에서 서명됩니다. 검토 후 전송하면 서명된 거래만 BTCMobick 네트워크로 전송됩니다.'
+                : 'The transaction is signed on this device. After review, only the signed transaction is sent to the BTCMobick network.'),
           )),
           const SizedBox(height: 16),
           FilledButton(

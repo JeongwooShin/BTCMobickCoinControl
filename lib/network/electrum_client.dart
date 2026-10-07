@@ -1,19 +1,32 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:crypto/crypto.dart';
+
 import '../domain/utxo.dart';
 
 class ElectrumException implements Exception { const ElectrumException(this.message); final String message; @override String toString()=>message; }
 
 class ElectrumClient {
- ElectrumClient({this.host='wallet.mobick.info',this.port=40008,this.useTls=false,this.timeout=const Duration(seconds:15)});
+ ElectrumClient({this.host='wallet.mobick.info',this.port=40009,this.useTls=true,this.timeout=const Duration(seconds:15)});
+ static const String _pinnedCertificateSha256 =
+     'A544AA42F5A9C74B89CA2334F7FF6B93F2F002B2FDE6885A3C2812FAEB6D64B5';
  final String host; final int port; final bool useTls; final Duration timeout;
  Socket? _socket; StreamIterator<String>? _lines; int _requestId=0;
 
  Future<void> connect() async {
   if(_socket!=null)return;
   final Socket s=useTls
-    ? await SecureSocket.connect(host,port,timeout:timeout,onBadCertificate:(_)=>false)
+    ? await SecureSocket.connect(
+        host,
+        port,
+        timeout:timeout,
+        onBadCertificate:(certificate) {
+          final fingerprint = sha256.convert(certificate.der).toString().toUpperCase();
+          return fingerprint == _pinnedCertificateSha256;
+        },
+      )
     : await Socket.connect(host,port,timeout:timeout);
   _socket=s; _lines=StreamIterator(s.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()));
   final v=await request('server.version',['btcmobick-coin-control','1.4']);

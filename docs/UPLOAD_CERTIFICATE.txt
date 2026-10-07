@@ -1,0 +1,8 @@
+UTXO Control upload certificate
+
+Alias: utxo-control-upload
+Subject: CN=UTXO Control, OU=Mobile, O=Runbickers, L=Daegu, S=Daegu, C=KR
+Valid from: 2026-10-07
+Valid until: 2054-02-22
+SHA-1: C27463C9E29DA0984AEC5CBF445F5D9E0CAAE354
+SHA-256: 0C15FCC3CB28DB47691AB4BD16D2CB5E098E6744FF78BDDE19904DC82DA417C8
