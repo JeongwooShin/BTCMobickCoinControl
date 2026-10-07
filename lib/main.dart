@@ -1119,8 +1119,19 @@ class _TransactionReviewScreenState extends State<TransactionReviewScreen> {
         SnackBar(
           content: Text(
             ko
-                ? '브로드캐스트 실패: ${e.message}'
-                : 'Broadcast failed: ${e.message}',
+                ? '브로드캐스트 실패: ${e.message} 동일한 서명 거래를 다시 전송해도 새 거래가 만들어지지는 않습니다.'
+                : 'Broadcast failed: ${e.message} Rebroadcasting the same signed transaction does not create a new transaction.',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ko
+                ? '네트워크 응답을 확인하지 못했습니다. 연결을 확인한 뒤 동일한 서명 거래를 다시 전송하세요.'
+                : 'The network response could not be confirmed. Check the connection, then rebroadcast the same signed transaction.',
           ),
         ),
       );
