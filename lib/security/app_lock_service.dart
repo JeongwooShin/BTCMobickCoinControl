@@ -84,8 +84,8 @@ class AppLockService {
     try {
       return await _localAuthentication.authenticate(
         localizedReason: korean
-            ? 'BTCMobick Coin Control 잠금을 해제하세요.'
-            : 'Unlock BTCMobick Coin Control.',
+            ? 'UTXO Control 잠금을 해제하세요.'
+            : 'Unlock UTXO Control.',
         biometricOnly: true,
         sensitiveTransaction: true,
         persistAcrossBackgrounding: false,
