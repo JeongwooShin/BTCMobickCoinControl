@@ -58,7 +58,7 @@ The application ID becomes permanent after the first Play Console upload.
 - [x] Dedicated upload keystore created outside the repository
 - [x] Release signing configured without committing secrets
 - [x] Public upload-certificate fingerprints documented
-- [ ] Keystore and password file backed up to two secure locations
+- [x] Keystore and password file backed up locally and to `F:\UTXO-Control-Release-Key-Backup` (hashes verified)
 - [x] Release AAB built and signature verified (GitHub Actions run `37566249079`)
 - [x] Signed release APK installed and cold-launched on Samsung SM-F958N / Android 16
 - [ ] Release installed through Play internal testing
